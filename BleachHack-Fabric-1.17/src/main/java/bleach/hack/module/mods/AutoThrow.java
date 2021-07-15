@@ -1,13 +1,21 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
@@ -27,12 +35,12 @@ public class AutoThrow extends Module {
 	private int delay = 0;
 
 	public AutoThrow() {
-		super("AutoThrow", KEY_UNBOUND, Category.PLAYER, "Automatically throws XP/Potions",
-				new SettingToggle("XP", true).withDesc("Automatically throws XP"),
-				new SettingToggle("Potions", true).withDesc("Automatically throws splash potions").withChildren(
-						new SettingToggle("Smart", true).withDesc("Only throws if you don't have the effect already")),
-				new SettingToggle("SwitchBack", true).withDesc("Switches back to your prevous item after throwing"),
-				new SettingSlider("Delay", 0, 6, 4, 0).withDesc("How long to wait before throwing the next item (in ticks)"));
+		super("AutoThrow", KEY_UNBOUND, ModuleCategory.PLAYER, "Automatically throws XP/Potions.",
+				new SettingToggle("XP", true).withDesc("Automatically throws XP."),
+				new SettingToggle("Potions", true).withDesc("Automatically throws splash potions.").withChildren(
+						new SettingToggle("Smart", true).withDesc("Only throws if you don't have the effect already.")),
+				new SettingToggle("SwitchBack", true).withDesc("Switches back to your prevous item after throwing."),
+				new SettingSlider("Delay", 0, 6, 4, 0).withDesc("How long to wait before throwing the next item (in ticks)."));
 	}
 
 	@Override
@@ -41,7 +49,7 @@ public class AutoThrow extends Module {
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		for (Entry<StatusEffect, Integer> e: new HashMap<>(effectCache).entrySet()) {
 			if (e.getValue() <= 0) {
@@ -100,7 +108,7 @@ public class AutoThrow extends Module {
 
 			InventoryUtils.selectSlot(slot);
 
-			mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(mc.player.yaw, 90, mc.player.isOnGround()));
+			mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(mc.player.getYaw(), 90, mc.player.isOnGround()));
 			mc.interactionManager.interactItem(mc.player, mc.world, slot == 40 ? Hand.OFF_HAND : Hand.MAIN_HAND);
 
 			if (prevSlot != -1) {

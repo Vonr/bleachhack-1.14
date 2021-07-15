@@ -1,44 +1,38 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventBiomeColor;
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventSkyRender;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
 import net.minecraft.client.render.SkyProperties;
-import net.minecraft.client.render.SkyProperties.SkyType;
+import net.minecraft.network.packet.s2c.play.DisconnectS2CPacket;
+import net.minecraft.network.packet.s2c.play.GameStateChangeS2CPacket;
 import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public class Ambience extends Module {
 
+	private WeatherManager weatherManager = new WeatherManager();
+
 	public Ambience() {
-		super("Ambience", KEY_UNBOUND, Category.WORLD, "Changes the world ambience",
+		super("Ambience", KEY_UNBOUND, ModuleCategory.WORLD, "Changes the world ambience",
 				new SettingToggle("Weather", true).withDesc("Changes the world weather").withChildren(
 						new SettingMode("Weather", "Clear", "Rain").withDesc("What weather to use"),
 						new SettingSlider("Rain", 0, 2, 0, 2).withDesc("How much rain")),
@@ -69,30 +63,33 @@ public class Ambience extends Module {
 						new SettingToggle("Water Color", false).withDesc("Changes the water color").withChildren(
 								new SettingColor("Color", 0.5f, 1f, 0.5f, false).withDesc("Water color"))));
 	}
+	
+	@Override
+	public void onDisable() {
+		weatherManager.applyWeather(mc.world);
+		weatherManager.reset();
 
-	public SkyProperties getCurrentSky() {
-		return new SkyProperties(128f, false, SkyType.NORMAL, false, false) {
-
-			@Override
-			public boolean useThickFog(int camouseX, int camouseY) {
-				return false;
-			}
-
-			@Override
-			public Vec3d adjustFogColor(Vec3d color, float sunHeight) {
-				return color;
-			}
-		};
+		super.onDisable();
 	}
 
-	@Subscribe
-	public void onPreTick(EventTick event) {
+	@BleachSubscribe
+	public void onTick(EventTick event) {
 		if (getSetting(0).asToggle().state) {
+			if (!weatherManager.isActive()) {
+				weatherManager.setRain(mc.world.getRainGradient(mc.getTickDelta()));
+				weatherManager.setThunder(mc.world.getThunderGradient(mc.getTickDelta()));
+			}
+
 			if (getSetting(0).asToggle().getChild(0).asMode().mode == 0) {
+				mc.world.getLevelProperties().setRaining(false);
 				mc.world.setRainGradient(0f);
 			} else {
+				mc.world.getLevelProperties().setRaining(true);
 				mc.world.setRainGradient(getSetting(0).asToggle().getChild(1).asSlider().getValueFloat());
 			}
+		} else if (weatherManager.isActive()) {
+			weatherManager.applyWeather(mc.world);
+			weatherManager.reset();
 		}
 
 		if (getSetting(1).asToggle().state) {
@@ -100,14 +97,31 @@ public class Ambience extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void readPacket(EventReadPacket event) {
-		if (event.getPacket() instanceof WorldTimeUpdateS2CPacket) {
+		if (event.getPacket() instanceof GameStateChangeS2CPacket && getSetting(0).asToggle().state) {
+			GameStateChangeS2CPacket packet = (GameStateChangeS2CPacket) event.getPacket();
+			if (packet.getReason() == GameStateChangeS2CPacket.RAIN_STARTED) {
+				weatherManager.setRain(1f);
+			} else if (packet.getReason() == GameStateChangeS2CPacket.RAIN_STOPPED) {
+				weatherManager.setRain(0f);
+			} else if (packet.getReason() == GameStateChangeS2CPacket.RAIN_GRADIENT_CHANGED) {
+				weatherManager.setRain(packet.getValue());
+			} else if (packet.getReason() == GameStateChangeS2CPacket.THUNDER_GRADIENT_CHANGED) {
+				weatherManager.setThunder(packet.getValue());
+			} else {
+				return;
+			}
+
+			event.setCancelled(true);
+		} else if (event.getPacket() instanceof DisconnectS2CPacket && getSetting(0).asToggle().state) {
+			weatherManager.reset();
+		} else if (event.getPacket() instanceof WorldTimeUpdateS2CPacket && getSetting(1).asToggle().state) {
 			event.setCancelled(true);
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onBiomeColor(EventBiomeColor event) {
 		int type = event instanceof EventBiomeColor.Water ? 2 : 1;
 
@@ -115,14 +129,14 @@ public class Ambience extends Module {
 				? getCurrentDimSetting().getChild(type).asToggle().getChild(0).asColor().getRGB() : null);
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onSkyColor(EventSkyRender.Color event) {
 		if (getCurrentDimSetting().state && getCurrentDimSetting().getChild(0).asToggle().state) {
 			event.setColor(getCurrentDimSetting().getChild(0).asToggle().getChild(1).asColor().getRGBFloat());
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onSkyProperties(EventSkyRender.Properties event) {
 		if (getCurrentDimSetting().state && getCurrentDimSetting().getChild(0).asToggle().state
 				&& getCurrentDimSetting().getChild(0).asToggle().getChild(0).asToggle().state) {
@@ -145,5 +159,39 @@ public class Ambience extends Module {
 
 	private SettingToggle getCurrentDimSetting() {
 		return getSetting(mc.world.getRegistryKey() == World.END ? 4 : mc.world.getRegistryKey() == World.NETHER ? 3 : 2).asToggle();
+	}
+	
+	private static class WeatherManager {
+		
+		private float rain = -1f;
+		private float thunder = -1f;
+		
+		public void setRain(float rain) {
+			this.rain = rain;
+		}
+		
+		public void setThunder(float thunder) {
+			this.thunder = thunder;
+		}
+		
+		public void reset() {
+			rain = -1f;
+			thunder = -1f;
+		}
+		
+		public void applyWeather(World world) {
+			if (rain >= 0f) {
+				world.getLevelProperties().setRaining(rain > 0f);
+				world.setRainGradient(rain);
+			}
+			
+			if (thunder >= 0f) {
+				world.setThunderGradient(thunder);
+			}
+		}
+		
+		public boolean isActive() {
+			return rain >= 0f || thunder >= 1f;
+		}
 	}
 }

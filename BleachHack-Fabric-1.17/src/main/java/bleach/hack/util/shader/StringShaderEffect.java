@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.util.shader;
 
 import java.io.FileNotFoundException;
@@ -21,6 +29,7 @@ import net.minecraft.client.gl.GlUniform;
 import net.minecraft.client.gl.PostProcessShader;
 import net.minecraft.client.gl.ShaderEffect;
 import net.minecraft.client.gl.ShaderParseException;
+import net.minecraft.client.gl.SimpleFramebuffer;
 import net.minecraft.client.texture.AbstractTexture;
 import net.minecraft.client.texture.TextureManager;
 import net.minecraft.resource.Resource;
@@ -245,13 +254,12 @@ public class StringShaderEffect extends ShaderEffect {
 	}
 
 	public void addTarget(String name, int width, int height) {
-		Framebuffer framebuffer = new Framebuffer(width, height, true, MinecraftClient.IS_SYSTEM_MAC);
+		Framebuffer framebuffer = new SimpleFramebuffer(width, height, true, MinecraftClient.IS_SYSTEM_MAC);
 		framebuffer.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
 		this.targetsByName.put(name, framebuffer);
 		if (width == this.width && height == this.height) {
 			this.defaultSizedTargets.add(framebuffer);
 		}
-
 	}
 
 	public void close() {
@@ -273,7 +281,7 @@ public class StringShaderEffect extends ShaderEffect {
 	}
 
 	private void setupProjectionMatrix() {
-		this.projectionMatrix = Matrix4f.method_34239(0.0F, (float) this.mainTarget.textureWidth, (float) this.mainTarget.textureHeight, 0.0F, 0.1F, 1000.0F);
+		this.projectionMatrix = Matrix4f.projectionMatrix(0.0F, (float) this.mainTarget.textureWidth, (float) this.mainTarget.textureHeight, 0.0F, 0.1F, 1000.0F);
 	}
 
 	public void setupDimensions(int targetsWidth, int targetsHeight) {

@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.mixin;
 
@@ -30,13 +21,17 @@ import com.mojang.authlib.GameProfile;
 import bleach.hack.BleachHack;
 import bleach.hack.event.events.EventClientMove;
 import bleach.hack.event.events.EventSendMovementPackets;
+import bleach.hack.event.events.EventSwingHand;
 import bleach.hack.module.ModuleManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.MovementType;
+import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 
 @Mixin(ClientPlayerEntity.class)
@@ -44,6 +39,7 @@ public class MixinClientPlayerEntity extends AbstractClientPlayerEntity {
 
 	@Shadow private float field_3922;
 
+	@Shadow public ClientPlayNetworkHandler networkHandler;
 	@Shadow protected MinecraftClient client;
 
 	public MixinClientPlayerEntity(ClientWorld world, GameProfile profile) {
@@ -78,10 +74,10 @@ public class MixinClientPlayerEntity extends AbstractClientPlayerEntity {
 		BleachHack.eventBus.post(event);
 		if (event.isCancelled()) {
 			info.cancel();
-		} else if (!type.equals(event.type) || !movement.equals(event.vec3d)) {
+		} else if (!type.equals(event.getType()) || !movement.equals(event.getVec())) {
 			double double_1 = this.getX();
 			double double_2 = this.getZ();
-			super.move(event.type, event.vec3d);
+			super.move(event.getType(), event.getVec());
 			this.autoJump((float) (this.getX() - double_1), (float) (this.getZ() - double_2));
 			info.cancel();
 		}
@@ -105,11 +101,23 @@ public class MixinClientPlayerEntity extends AbstractClientPlayerEntity {
 
 	@Redirect(method = "updateNausea", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;openScreen(Lnet/minecraft/client/gui/screen/Screen;)V", ordinal = 0),
 			require = 0 /* TODO: inertia */)
-	private void updateNausea_openScreen(MinecraftClient player, Screen screen) {
+	private void updateNausea_openScreen(MinecraftClient client, Screen screen) {
 		if (!ModuleManager.getModule("BetterPortal").isEnabled()
 				|| !ModuleManager.getModule("BetterPortal").getSetting(0).asToggle().state) {
 			client.openScreen(screen);
 		}
+	}
+	
+	@Overwrite
+	public void swingHand(Hand hand) {
+		EventSwingHand event = new EventSwingHand(hand);
+		BleachHack.eventBus.post(event);
+
+		if (!event.isCancelled()) {
+			super.swingHand(event.getHand());
+		}
+
+		networkHandler.sendPacket(new HandSwingC2SPacket(hand));
 	}
 
 	@Override

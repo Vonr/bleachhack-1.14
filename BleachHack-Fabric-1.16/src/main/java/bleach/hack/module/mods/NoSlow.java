@@ -1,31 +1,22 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventClientMove;
 import bleach.hack.event.events.EventSendPacket;
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingToggle;
 import bleach.hack.util.world.WorldUtils;
@@ -33,16 +24,15 @@ import net.minecraft.block.Blocks;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.AnvilScreen;
-import net.minecraft.client.gui.screen.ingame.BookScreen;
+import net.minecraft.client.gui.screen.ingame.BookEditScreen;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
 import net.minecraft.client.gui.screen.ingame.JigsawBlockScreen;
 import net.minecraft.client.gui.screen.ingame.SignEditScreen;
 import net.minecraft.client.gui.screen.ingame.StructureBlockScreen;
-import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.ItemGroup;
-import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket.Mode;
@@ -56,7 +46,7 @@ public class NoSlow extends Module {
 	private long lastTime;
 
 	public NoSlow() {
-		super("NoSlow", KEY_UNBOUND, Category.MOVEMENT, "Disables Stuff From Slowing You Down",
+		super("NoSlow", KEY_UNBOUND, ModuleCategory.MOVEMENT, "Disables Stuff From Slowing You Down",
 				new SettingToggle("Slowness", true).withDesc("Removes slowness effects"),
 				new SettingToggle("Soul Sand", true).withDesc("Removes the soul sand slowness"),
 				new SettingToggle("Slime Blocks", true).withDesc("Removes the slimeblock slowness"),
@@ -71,7 +61,7 @@ public class NoSlow extends Module {
 								new SettingToggle("Anti-Spinbot", true).withDesc("Adds a random amount of rotation when spinning to prevent spinbot detects"))));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onClientMove(EventClientMove event) {
 		if (!isEnabled())
 			return;
@@ -118,7 +108,7 @@ public class NoSlow extends Module {
 		// Items handled in MixinPlayerEntity:sendMovementPackets_isUsingItem
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		/* Inventory */
 		if (getSetting(6).asToggle().state && shouldInvMove(mc.currentScreen)) {
@@ -138,7 +128,7 @@ public class NoSlow extends Module {
 		}
 	}
 	
-	@Subscribe
+	@BleachSubscribe
 	public void onRender(EventWorldRender.Post event) {
 		/* Inventory */
 		if (getSetting(6).asToggle().state
@@ -187,7 +177,7 @@ public class NoSlow extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onSendPacket(EventSendPacket event) {
 		if (event.getPacket() instanceof ClickSlotC2SPacket && getSetting(6).asToggle().asToggle().getChild(1).asToggle().state) {
 			mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, Mode.STOP_SPRINTING));
@@ -200,7 +190,7 @@ public class NoSlow extends Module {
 		}
 
 		return !(screen instanceof ChatScreen
-				|| (screen instanceof BookScreen && mc.player.getMainHandStack().getItem() == Items.WRITABLE_BOOK)
+				|| screen instanceof BookEditScreen
 				|| screen instanceof SignEditScreen
 				|| screen instanceof JigsawBlockScreen
 				|| screen instanceof StructureBlockScreen

@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.setting.other;
 
 import java.util.List;
@@ -31,9 +39,9 @@ public class SettingLists {
 		return new SettingList<Block>(text, windowText, blockList, blocks) {
 
 			@Override
-			public void renderItem(MinecraftClient mc, MatrixStack matrix, Block item, int x, int y, int w, int h) {
+			public void renderItem(MinecraftClient mc, MatrixStack matrices, Block item, int x, int y, int w, int h) {
 				if (item.asItem() == Items.AIR) {
-					super.renderItem(mc, matrix, item, x, y, w, h);
+					super.renderItem(mc, matrices, item, x, y, w, h);
 				} else {
 					RenderSystem.getModelViewStack().push();
 
@@ -74,9 +82,9 @@ public class SettingLists {
 		return new SettingList<Item>(text, windowText, itemList, items) {
 
 			@Override
-			public void renderItem(MinecraftClient mc, MatrixStack matrix, Item item, int x, int y, int w, int h) {
+			public void renderItem(MinecraftClient mc, MatrixStack matrices, Item item, int x, int y, int w, int h) {
 				if (item == Items.AIR) {
-					super.renderItem(mc, matrix, item, x, y, w, h);
+					super.renderItem(mc, matrices, item, x, y, w, h);
 				} else {
 					RenderSystem.getModelViewStack().push();
 

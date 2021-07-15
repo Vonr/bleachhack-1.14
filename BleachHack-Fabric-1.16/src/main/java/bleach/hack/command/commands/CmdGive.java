@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
 
@@ -26,11 +17,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
+import bleach.hack.command.exception.CmdSyntaxException;
 import bleach.hack.util.BleachLogger;
 import net.minecraft.item.AirBlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
@@ -38,11 +30,15 @@ import net.minecraft.util.registry.Registry;
 public class CmdGive extends Command {
 
 	public CmdGive() {
-		super("give", "Gives you an item.", "give <item> <count> <damage> <nbt> | give preset <negs/stacked/spawners/bookban/eggs> <chest/shulker/egg>", CommandCategory.CREATIVE);
+		super("give", "Gives you an item.", "give <item> <count> <damage> <nbt> | give preset [negs/stacked/spawners/bookban/eggs] [chest/shulker/egg]", CommandCategory.CREATIVE);
 	}
 
 	@Override
 	public void onCommand(String alias, String[] args) throws Exception {
+		if (args.length == 0) {
+			throw new CmdSyntaxException();
+		}
+
 		if (!mc.player.abilities.creativeMode) {
 			BleachLogger.errorMessage("Not In Creative Mode!");
 			return;
@@ -52,65 +48,65 @@ public class CmdGive extends Command {
 			String args2 = (args.length >= 3 ? args[2] : "");
 
 			ItemStack item = new ItemStack(args2.equalsIgnoreCase("egg") ? Items.STRIDER_SPAWN_EGG : args2.equalsIgnoreCase("chest") ? Items.CHEST : Items.PINK_SHULKER_BOX);
-			CompoundTag tag = null;
+			NbtCompound tag = null;
 
 			if (args[1].equalsIgnoreCase("negs")) {
-				long damg = args.length < 2 ? 0 : NumberUtils.toLong(args[1]);
+				long dmg = args.length < 2 ? 0 : NumberUtils.toLong(args[1]);
 				tag = StringNbtReader.parse(
 						"{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Items\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},BlockEntityTag:{Items:[{Slot:0b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:1b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:2b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:3b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:4b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:5b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:6b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:7b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:8b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:9b,id:\"minecraft:diamond_sword\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Sword\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:10b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:11b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:12b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:13b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:14b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:15b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:16b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:17b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:18b,id:\"minecraft:diamond_axe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Axe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:19b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:20b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:21b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:22b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:23b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:24b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:25b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg)
+								+ (dmg == 0 ? 1981 : dmg)
 								+ ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}},{Slot:26b,id:\"minecraft:diamond_hoe\",Count:64b,tag:{display:{Name:\"{\\\"text\\\":\\\"Bleach's Negative Hoe\\\",\\\"color\\\":\\\"aqua\\\",\\\"bold\\\":true,\\\"italic\\\":true,\\\"underlined\\\":true}\"},Damage:"
-								+ (damg == 0 ? 1981 : damg) + ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}}]}}");
+								+ (dmg == 0 ? 1981 : dmg) + ",Enchantments:[{id:\"minecraft:vanishing_curse\",lvl:1s}]}}]}}");
 			}
 			else if (args[1].equalsIgnoreCase("stacked")) {
 				tag = StringNbtReader.parse(
@@ -204,9 +200,9 @@ public class CmdGive extends Command {
 			}
 
 			if (args2.equalsIgnoreCase("egg")) {
-				CompoundTag ct = new CompoundTag();
+				NbtCompound ct = new NbtCompound();
 				ct.put("EntityTag", StringNbtReader.parse("{Time:1,id:\"minecraft:falling_block\",BlockState:{Name:\"minecraft:chest\"}}"));
-				((CompoundTag) ct.get("EntityTag")).put("TileEntityData", tag.get("BlockEntityTag"));
+				((NbtCompound) ct.get("EntityTag")).put("TileEntityData", tag.get("BlockEntityTag"));
 
 				item.setTag(ct);
 			} else {
@@ -221,7 +217,7 @@ public class CmdGive extends Command {
 				Registry.ITEM.get(new Identifier("minecraft:" + args[0].toLowerCase(Locale.ENGLISH))));
 
 		if (item.getItem() instanceof AirBlockItem)
-			printSyntaxError();
+			throw new CmdSyntaxException();
 
 		if (args.length >= 2 && NumberUtils.isCreatable(args[1]))
 			item.setCount(NumberUtils.createNumber(args[1]).intValue());

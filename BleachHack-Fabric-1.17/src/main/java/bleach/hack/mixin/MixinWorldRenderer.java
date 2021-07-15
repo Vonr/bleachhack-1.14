@@ -1,12 +1,21 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.mixin;
 
 import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -16,11 +25,7 @@ import bleach.hack.event.events.EventBlockEntityRender;
 import bleach.hack.event.events.EventEntityRender;
 import bleach.hack.event.events.EventSkyRender;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.mixinterface.IMixinWorldRenderer;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.ShaderEffect;
-import net.minecraft.client.render.BufferBuilderStorage;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -34,17 +39,15 @@ import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.profiler.Profiler;
 
 @Mixin(WorldRenderer.class)
-public class MixinWorldRenderer implements IMixinWorldRenderer {
+public class MixinWorldRenderer {
 
-	@Shadow private BufferBuilderStorage bufferBuilders;
-	@Shadow private Framebuffer entityOutlinesFramebuffer;
-	@Shadow private ShaderEffect entityOutlineShader;
-
-	/** Fixes that the outline framebuffer only resets if any glowing entites are drawn **/
-	@ModifyVariable(method = "render", at = @At(value = "STORE"), index = 37)
-	//@ModifyVariable(method = "render", name = "bl3", at = @At("STORE"))
-	public boolean render_modifyBoolean(boolean bool) {
-		return true;
+	/** Fixes that the outline framebuffer only resets if any glowing entities are drawn **/
+	@ModifyConstant(method = "render", require = 1, constant = @Constant(intValue = 0),
+			slice = @Slice(
+					from = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/Framebuffer;beginWrite(Z)V", ordinal = 1),
+					to = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/BufferBuilderStorage;getEntityVertexConsumers()Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;")))
+	public int render_modifyBoolean(int old) {
+		return 1;
 	}
 
 	@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V"))
@@ -80,7 +83,7 @@ public class MixinWorldRenderer implements IMixinWorldRenderer {
 		EventWorldRender.Post event = new EventWorldRender.Post(tickDelta);
 		BleachHack.eventBus.post(event);
 	}
-	
+
 	@Redirect(method = "renderEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/entity/EntityRenderDispatcher;render(Lnet/minecraft/entity/Entity;DDDFFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V"))
 	public <E extends Entity> void renderEntity_render(EntityRenderDispatcher dispatcher, E entity, double x, double y, double z, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
 		EventEntityRender.Single.Pre event = new EventEntityRender.Single.Pre(entity, matrices, vertexConsumers);
@@ -102,35 +105,6 @@ public class MixinWorldRenderer implements IMixinWorldRenderer {
 		} else {
 			return vertexConsumer.color(red, green, blue, alpha);
 		}
-	}
-	
-	/*@Redirect(method = "method_34808", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;chunkCullingEnabled:Z", ordinal = 0),
-			require = 0 / TODO: sodium? /)
-	private boolean method_34808_chunkCullingEnabled(MinecraftClient client) {
-		EventChunkCulling event = new EventChunkCulling(client.chunkCullingEnabled);
-		BleachHack.eventBus.post(event);
-		
-		return event.shouldCull();
-	}*/
-
-	@Override
-	public Framebuffer getOutlineFramebuffer() {
-		return entityOutlinesFramebuffer;
-	}
-
-	@Override
-	public void setOutlineFramebuffer(Framebuffer framebuffer) {
-		this.entityOutlinesFramebuffer = framebuffer;
-	}
-
-	@Override
-	public ShaderEffect getOutlineShader() {
-		return entityOutlineShader;
-	}
-
-	@Override
-	public void setOutlineShader(ShaderEffect shader) {
-		this.entityOutlineShader = shader;
 	}
 
 	/*@Redirect(method = "loadEntityOutlineShader", at = @At(value = "NEW", target = "(Ljava/lang/String;)Lnet/minecraft/util/Identifier;"))

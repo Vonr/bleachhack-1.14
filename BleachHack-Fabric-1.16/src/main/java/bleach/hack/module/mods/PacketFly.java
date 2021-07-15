@@ -1,32 +1,21 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
-import org.lwjgl.glfw.GLFW;
-
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventSendMovementPackets;
 import bleach.hack.event.events.EventSendPacket;
 import bleach.hack.event.events.EventClientMove;
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -46,7 +35,7 @@ public class PacketFly extends Module {
 	private int timer = 0;
 
 	public PacketFly() {
-		super("PacketFly", GLFW.GLFW_KEY_H, Category.MOVEMENT, "Allows you to fly with packets.",
+		super("PacketFly", KEY_UNBOUND, ModuleCategory.MOVEMENT, "Allows you to fly with packets.",
 				new SettingMode("Mode", "Phase", "Packet").withDesc("Packetfly mode"),
 				new SettingSlider("HSpeed", 0.05, 2, 0.5, 2).withDesc("Horizontal speed"),
 				new SettingSlider("VSpeed", 0.05, 2, 0.5, 2).withDesc("Vertical speed"),
@@ -62,18 +51,18 @@ public class PacketFly extends Module {
 		posZ = mc.player.getZ();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onMovement(EventSendMovementPackets event) {
 		mc.player.setVelocity(Vec3d.ZERO);
 		event.setCancelled(true);
 	}
 	
-	@Subscribe
+	@BleachSubscribe
 	public void onMovement(EventClientMove event) {
 		event.setCancelled(true);
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onReadPacket(EventReadPacket event) {
 		if (event.getPacket() instanceof PlayerPositionLookS2CPacket) {
 			PlayerPositionLookS2CPacket p = (PlayerPositionLookS2CPacket) event.getPacket();
@@ -88,7 +77,7 @@ public class PacketFly extends Module {
 		
 	}
 	
-	@Subscribe
+	@BleachSubscribe
 	public void onSendPacket(EventSendPacket event) {
 		if (event.getPacket() instanceof PlayerMoveC2SPacket.LookOnly) {
 			event.setCancelled(true);
@@ -103,7 +92,7 @@ public class PacketFly extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		double hspeed = getSetting(1).asSlider().getValue();
 		double vspeed = getSetting(2).asSlider().getValue();

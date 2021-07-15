@@ -1,12 +1,20 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingToggle;
@@ -29,12 +37,12 @@ public class ClickTp extends Module {
 	private boolean antiSpamClick = false;
 
 	public ClickTp() {
-		super("ClickTp", KEY_UNBOUND, Category.MOVEMENT, "Allows you to teleport by clicking",
-				new SettingToggle("In Air", true).withDesc("Teleports even if you are pointing in the air"),
-				new SettingToggle("Liquids", false).withDesc("Interacts with liquids"),
-				new SettingToggle("Y First", false).withDesc("Sets you to the correct Y level first, then to your XZ coords, might fix going through walls"),
-				new SettingToggle("Always Up", false).withDesc("Always teleports you to the top of blocks instead of sides"),
-				new SettingColor("Highlight", 1f, 0.2f, 0.8f, false));
+		super("ClickTp", KEY_UNBOUND, ModuleCategory.MOVEMENT, "Allows you to teleport by clicking.",
+				new SettingToggle("InAir", true).withDesc("Teleports even if you are pointing in the air."),
+				new SettingToggle("Liquids", false).withDesc("Interacts with liquids."),
+				new SettingToggle("YFirst", false).withDesc("Sets you to the correct Y level first, then to your XZ coords, might fix going through walls."),
+				new SettingToggle("AlwaysUp", false).withDesc("Always teleports you to the top of blocks instead of sides."),
+				new SettingColor("Highlight", 1f, 0.2f, 0.8f, false).withDesc("The color of the target block."));
 	}
 
 	public void onDisable() {
@@ -44,7 +52,7 @@ public class ClickTp extends Module {
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onWorldRender(EventWorldRender.Post event) {
 		if (pos != null && dir != null) {
 			float[] col = getSetting(4).asColor().getRGBFloat();
@@ -55,7 +63,7 @@ public class ClickTp extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (InputUtil.isKeyPressed(mc.getWindow().getHandle(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
 			pos = null;
@@ -74,7 +82,7 @@ public class ClickTp extends Module {
 			if (GLFW.glfwGetMouseButton(mc.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_RIGHT) == 1 && mc.currentScreen == null && !antiSpamClick) {
 				antiSpamClick = true;
 
-				Vec3d tpPos = Vec3d.of(pos.offset(dir, dir == Direction.DOWN ? 2 : 1)).add(0.5, 0, 0.5);
+				Vec3d tpPos = Vec3d.ofBottomCenter(pos.offset(dir, dir == Direction.DOWN ? 2 : 1));
 
 				if (getSetting(2).asToggle().state) {
 					mc.player.updatePosition(mc.player.getX(), tpPos.y, mc.player.getZ());

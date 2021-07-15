@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.mixin;
 
 import org.spongepowered.asm.mixin.Final;
@@ -13,7 +21,7 @@ import bleach.hack.BleachHack;
 import bleach.hack.event.events.EventSkyRender;
 import bleach.hack.event.events.EventTick;
 import bleach.hack.util.BleachQueue;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.SkyProperties;
 import net.minecraft.client.world.ClientWorld;
@@ -22,18 +30,16 @@ import net.minecraft.util.math.Vec3d;
 @Mixin(ClientWorld.class)
 public class MixinClientWorld {
 
-	@Final @Shadow private SkyProperties skyProperties;
+	@Shadow @Final private SkyProperties skyProperties;
 
 	@Inject(method = "tickEntities", at = @At("HEAD"), cancellable = true)
 	public void tickEntities(CallbackInfo info) {
 		try {
 			if (MinecraftClient.getInstance().player.age % 100 == 0) {
-				if (BleachFileHelper.SCHEDULE_SAVE_MODULES)
-					BleachFileHelper.saveModules();
-				if (BleachFileHelper.SCHEDULE_SAVE_CLICKGUI)
-					BleachFileHelper.saveClickGui();
-				if (BleachFileHelper.SCHEDULE_SAVE_FRIENDS)
-					BleachFileHelper.saveFriends();
+				if (BleachFileHelper.SCHEDULE_SAVE_MODULES) BleachFileHelper.saveModules();
+				if (BleachFileHelper.SCHEDULE_SAVE_CLICKGUI) BleachFileHelper.saveClickGui();
+				if (BleachFileHelper.SCHEDULE_SAVE_FRIENDS) BleachFileHelper.saveFriends();
+				if (BleachFileHelper.SCHEDULE_SAVE_UI) BleachFileHelper.saveUI();
 			}
 
 			BleachQueue.nextQueue();

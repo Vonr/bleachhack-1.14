@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.util.world;
 
 import java.util.Arrays;
@@ -62,9 +70,9 @@ public class ClientChunkSerializer {
 		LightingProvider lightingProvider = world.getChunkManager().getLightingProvider();
 		boolean bl = chunk.isLightOn();
 
-		for(int i = lightingProvider.method_31929(); i < lightingProvider.method_31930(); ++i) {
+		for(int i = lightingProvider.getBottomY(); i < lightingProvider.getTopY(); ++i) {
 			int fi = i;
-			ChunkSection chunkSection = (ChunkSection) Arrays.stream(chunkSections).filter((chunkSectionx) -> {
+			ChunkSection chunkSection = (ChunkSection) Arrays.stream(chunkSections).filter(chunkSectionx -> {
 				return chunkSectionx != null && ChunkSectionPos.getSectionCoord(chunkSectionx.getYOffset()) == fi;
 			}).findFirst().orElse(WorldChunk.EMPTY_SECTION);
 			ChunkNibbleArray chunkNibbleArray = lightingProvider.get(LightType.BLOCK).getLightSection(ChunkSectionPos.from(chunkPos, i));

@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -21,20 +12,20 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket;
@@ -48,7 +39,7 @@ public class BookCrash extends Module {
 	private int delay = 0;
 
 	public BookCrash() {
-		super("BookCrash", KEY_UNBOUND, Category.EXPLOITS, "Abuses book and quill/sign packets to remotely kick people.",
+		super("BookCrash", KEY_UNBOUND, ModuleCategory.EXPLOITS, "Abuses book and quill/sign packets to remotely kick people.",
 				new SettingMode("Mode", "Jessica", "Raion", "Sign").withDesc("What method to use"),
 				new SettingSlider("Uses", 1, 20, 5, 0).withDesc("How many uses per tick"),
 				new SettingSlider("Delay", 0, 5, 0, 0).withDesc("How many ticks to wait between uses"),
@@ -57,15 +48,15 @@ public class BookCrash extends Module {
 				new SettingToggle("Auto-Off", true).withDesc("Automatically turns the modules off when you disconnect"));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		delay = (delay >= getSetting(2).asSlider().getValue() ? 0 : delay + 1);
 		if (delay > 0)
 			return;
 
 		ItemStack bookObj = new ItemStack(Items.WRITABLE_BOOK);
-		ListTag list = new ListTag();
-		CompoundTag tag = new CompoundTag();
+		NbtList list = new NbtList();
+		NbtCompound tag = new NbtCompound();
 		String author = "Bleach";
 		String title = "\n Bleachhack Owns All \n";
 
@@ -95,7 +86,7 @@ public class BookCrash extends Module {
 		} else {
 			for (int i = 0; i < pages; i++) {
 				String siteContent = size;
-				StringTag tString = StringTag.of(siteContent);
+				NbtString tString = NbtString.of(siteContent);
 				list.add(tString);
 			}
 
@@ -120,7 +111,7 @@ public class BookCrash extends Module {
 		return new String(new char[count]).replace("\0", with);
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	private void EventDisconnect(EventReadPacket event) {
 		if (event.getPacket() instanceof DisconnectS2CPacket && getSetting(5).asToggle().state)
 			setEnabled(false);

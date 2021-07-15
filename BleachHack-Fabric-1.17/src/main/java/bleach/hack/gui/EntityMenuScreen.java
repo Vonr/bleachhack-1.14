@@ -1,5 +1,14 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.gui;
 
+import java.net.URI;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,8 +20,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 
 import bleach.hack.module.ModuleManager;
 import bleach.hack.module.mods.EntityMenu;
+import bleach.hack.util.BleachLogger;
 import bleach.hack.util.Boxes;
-import bleach.hack.util.PairList;
+import bleach.hack.util.collections.MutablePairList;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
@@ -23,6 +33,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.text.LiteralText;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.Direction.Axis;
 import net.minecraft.util.math.MathHelper;
 
@@ -44,13 +55,13 @@ public class EntityMenuScreen extends Screen {
 	public void init() {
 		super.init();
 		this.cursorMode(GLFW.GLFW_CURSOR_HIDDEN);
-		yaw = client.player.yaw;
-		pitch = client.player.pitch;
+		yaw = client.player.getYaw();
+		pitch = client.player.getPitch();
 	}
 
 	private void cursorMode(int mode) {
-		double x = (double)(this.client.getWindow().getWidth() / 2);
-		double y = (double)(this.client.getWindow().getHeight() / 2);
+		double x = this.client.getWindow().getWidth() / 2d;
+		double y = this.client.getWindow().getHeight() / 2d;
 
 		KeyBinding.unpressAll();
 		InputUtil.setCursorParameters(this.client.getWindow().getHandle(), GLFW.GLFW_CURSOR_HIDDEN, x, y);
@@ -79,14 +90,22 @@ public class EntityMenuScreen extends Screen {
 					.replaceAll("%y%", coordFormat.format(entity.getY()))
 					.replaceAll("%z%", coordFormat.format(entity.getZ()));
 
-			if (message.startsWith("%suggestion")) {
-				client.openScreen(new ChatScreen(message.replaceFirst("%suggestion", "")));
+			if (message.startsWith(">suggest ")) {
+				client.setScreen(new ChatScreen(message.substring(9)));
+			} else if (message.startsWith(">url ")) {
+				try {
+					Util.getOperatingSystem().open(new URI(message.substring(5)));
+				} catch (Exception e) {
+					BleachLogger.errorMessage("Invalid url \"" + message.substring(5) + "\"");
+				}
+
+				client.setScreen((Screen) null);
 			} else {
 				client.player.sendChatMessage(message);
-				client.openScreen((Screen) null);
+				client.setScreen((Screen) null);
 			}
 		} else {
-			client.openScreen((Screen) null);
+			client.setScreen((Screen) null);
 		}
 	}
 
@@ -94,7 +113,7 @@ public class EntityMenuScreen extends Screen {
 		return false;
 	}
 
-	public void render(MatrixStack matrix, int mouseX, int mouseY, float delta) {
+	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
 		// Draw entity
 		RenderSystem.setShader(GameRenderer::getPositionTexShader);
 		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -114,13 +133,14 @@ public class EntityMenuScreen extends Screen {
 		RenderSystem.blendFuncSeparate(
 				GlStateManager.SrcFactor.ONE_MINUS_DST_COLOR, GlStateManager.DstFactor.ONE_MINUS_SRC_COLOR,
 				GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
-		drawTexture(matrix, crosshairX - 8, crosshairY - 8, 0, 0, 15, 15);
+		drawTexture(matrices, crosshairX - 8, crosshairY - 8, 0, 0, 15, 15);
 
-		drawDots(matrix, (int) (Math.min(height, width) / 2 * 0.75), mouseX, mouseY);
+		drawDots(matrices, (int) (Math.min(height, width) / 2 * 0.75), mouseX, mouseY);
 
-		matrix.push();
-		matrix.scale(2.5f, 2.5f, 1f);
-		drawCenteredString(matrix, textRenderer, entity.getDisplayName().getString() /*"Interaction Screen"*/, width / 5, 5, 0xFFFFFFFF);
+		matrices.push();
+		matrices.scale(2.5f, 2.5f, 1f);
+		drawCenteredText(matrices, textRenderer, entity.getDisplayName().getString() /*"Interaction Screen"*/, width / 5, 5, 0xFFFFFFFF);
+		matrices.pop();
 
 		Vector2 center = new Vector2(width / 2, height / 2);
 		Vector2 mouse = new Vector2(mouseX, mouseY).subtract(center).normalize();
@@ -134,15 +154,15 @@ public class EntityMenuScreen extends Screen {
 		this.crosshairX = (int) mouse.x + width / 2;
 		this.crosshairY = (int) mouse.y + height / 2;
 
-		client.player.yaw = yaw + mouse.x / 3;
-		client.player.pitch = MathHelper.clamp(pitch + mouse.y / 3, -90f, 90f);
-		super.render(matrix, mouseX, mouseY, delta);
+		client.player.setYaw(yaw + mouse.x / 3);
+		client.player.setPitch(MathHelper.clamp(pitch + mouse.y / 3, -90f, 90f));
+		super.render(matrices, mouseX, mouseY, delta);
 	}
 
-	private void drawDots(MatrixStack matrix, int radius, int mouseX, int mouseY) {
-		PairList<String, String> map = ((EntityMenu) ModuleManager.getModule("EntityMenu")).interactions;
+	private void drawDots(MatrixStack matrices, int radius, int mouseX, int mouseY) {
+		MutablePairList<String, String> map = ((EntityMenu) ModuleManager.getModule("EntityMenu")).interactions;
 		List<Vector2> pointList = new ArrayList<>();
-		String cache[] = new String[map.size()];
+		String[] cache = new String[map.size()];
 
 		int i = 0;
 		double lowestDistance = Double.MAX_VALUE;
@@ -151,7 +171,7 @@ public class EntityMenuScreen extends Screen {
 			double s = (double) i / map.size() * 2 * Math.PI;
 			int x = (int) Math.round(radius * Math.cos(s) + width / 2);
 			int y = (int) Math.round(radius * Math.sin(s) + height / 2);
-			drawTextField(matrix, x, y, string);
+			drawTextField(matrices, x, y, string);
 
 			// Calculate lowest distance between mouse and dot
 			if (Math.hypot(x - mouseX, y - mouseY) < lowestDistance) {
@@ -165,52 +185,50 @@ public class EntityMenuScreen extends Screen {
 		}
 
 		// Go through all point and if it is focused -> drawing different color, changing closest string value
-		for (int j = 0; j < map.size(); j++) {
-			Vector2 point = pointList.get(j);
-
+		for (Vector2 point: pointList) {
 			if (pointList.get(focusedDot).equals(point)) {
-				drawDot(matrix, (int) point.x, (int) point.y, 0xFF4CFF00);
+				drawDot(matrices, (int) point.x, (int) point.y, 0xFF4CFF00);
 				this.focusedString = cache[focusedDot];
 			} else {
-				drawDot(matrix, (int) point.x, (int) point.y, 0xFF0094FF);
+				drawDot(matrices, (int) point.x, (int) point.y, 0xFF0094FF);
 			}
 		}
 	}
 
-	private void drawRect(MatrixStack matrix, int startX, int startY, int width, int height, int colorInner,int colorOuter) {
-		drawHorizontalLine(matrix, startX, startX + width, startY, colorOuter);
-		drawHorizontalLine(matrix, startX, startX + width, startY + height, colorOuter);
-		drawVerticalLine(matrix, startX, startY, startY + height, colorOuter);
-		drawVerticalLine(matrix, startX + width, startY, startY + height, colorOuter);
-		fill(matrix, startX + 1, startY + 1, startX + width, startY + height, colorInner);
+	private void drawRect(MatrixStack matrices, int startX, int startY, int width, int height, int colorInner,int colorOuter) {
+		drawHorizontalLine(matrices, startX, startX + width, startY, colorOuter);
+		drawHorizontalLine(matrices, startX, startX + width, startY + height, colorOuter);
+		drawVerticalLine(matrices, startX, startY, startY + height, colorOuter);
+		drawVerticalLine(matrices, startX + width, startY, startY + height, colorOuter);
+		fill(matrices, startX + 1, startY + 1, startX + width, startY + height, colorInner);
 	}
 
-	private void drawTextField(MatrixStack matrix, int x, int y, String text) {
+	private void drawTextField(MatrixStack matrices, int x, int y, String text) {
 		if (x >= width / 2) {
-			drawRect(matrix, x + 10, y - 8, textRenderer.getWidth(text) + 3, 15, 0x80808080, 0xFF000000);
-			drawStringWithShadow(matrix, textRenderer, text, x + 12, y - 4, 0xFFFFFFFF);
+			drawRect(matrices, x + 10, y - 8, textRenderer.getWidth(text) + 3, 15, 0x80808080, 0xFF000000);
+			drawStringWithShadow(matrices, textRenderer, text, x + 12, y - 4, 0xFFFFFFFF);
 		} else {
-			drawRect(matrix, x - 14 - textRenderer.getWidth(text), y - 8, textRenderer.getWidth(text) + 3, 15, 0x80808080, 0xFF000000);
-			drawStringWithShadow(matrix, textRenderer, text, x - 12 - textRenderer.getWidth(text), y - 4, 0xFFFFFFFF);
+			drawRect(matrices, x - 14 - textRenderer.getWidth(text), y - 8, textRenderer.getWidth(text) + 3, 15, 0x80808080, 0xFF000000);
+			drawStringWithShadow(matrices, textRenderer, text, x - 12 - textRenderer.getWidth(text), y - 4, 0xFFFFFFFF);
 		}
 	}
 
 	// Literally drawing it in code
-	private void drawDot(MatrixStack matrix, int centerX, int centerY, int colorInner) {
+	private void drawDot(MatrixStack matrices, int centerX, int centerY, int colorInner) {
 		// Black background
-		fill(matrix, centerX - 1, centerY - 5, centerX + 2, centerY + 6, 0xff000000);
-		fill(matrix, centerX - 3, centerY - 4, centerX + 4, centerY + 5, 0xff000000);
-		fill(matrix, centerX - 4, centerY - 3, centerX + 5, centerY + 4, 0xff000000);
-		fill(matrix, centerX - 5, centerY - 1, centerX + 6, centerY + 2, 0xff000000);
+		fill(matrices, centerX - 1, centerY - 5, centerX + 2, centerY + 6, 0xff000000);
+		fill(matrices, centerX - 3, centerY - 4, centerX + 4, centerY + 5, 0xff000000);
+		fill(matrices, centerX - 4, centerY - 3, centerX + 5, centerY + 4, 0xff000000);
+		fill(matrices, centerX - 5, centerY - 1, centerX + 6, centerY + 2, 0xff000000);
 
 		// Fill
-		fill(matrix, centerX - 1, centerY - 4, centerX + 2, centerY + 5, colorInner);
-		fill(matrix, centerX - 3, centerY - 3, centerX + 4, centerY + 4, colorInner);
-		fill(matrix, centerX - 4, centerY - 1, centerX + 5, centerY + 2, colorInner);
+		fill(matrices, centerX - 1, centerY - 4, centerX + 2, centerY + 5, colorInner);
+		fill(matrices, centerX - 3, centerY - 3, centerX + 4, centerY + 4, colorInner);
+		fill(matrices, centerX - 4, centerY - 1, centerX + 5, centerY + 2, colorInner);
 
 		// Light overlay
-		fill(matrix, centerX - 1, centerY - 3, centerX + 1, centerY - 2, 0x80ffffff);
-		fill(matrix, centerX - 2, centerY - 2, centerX - 1, centerY - 1, 0x80ffffff);
+		fill(matrices, centerX - 1, centerY - 3, centerX + 1, centerY - 2, 0x80ffffff);
+		fill(matrices, centerX - 2, centerY - 2, centerX - 1, centerY - 1, 0x80ffffff);
 		//fill(matrix, centerX - 3, centerY - 1, centerX - 2, centerY, 0x80ffffff);
 	}
 }

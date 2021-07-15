@@ -1,15 +1,23 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.gui;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import bleach.hack.gui.window.Window;
 import bleach.hack.gui.window.WindowScreen;
-import bleach.hack.util.PairList;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.collections.MutablePairList;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
@@ -17,12 +25,9 @@ import net.minecraft.item.Items;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.MathHelper;
 
-/**
- * @author <a href="https://github.com/lasnikprogram">Lasnik</a>
- */
 public class EntityMenuEditScreen extends WindowScreen {
 
-	private PairList<String, String> interactions;
+	private MutablePairList<String, String> interactions;
 	private String selectedEntry;
 	private String hoverEntry;
 	private String deleteEntry;
@@ -33,11 +38,12 @@ public class EntityMenuEditScreen extends WindowScreen {
 	private boolean addEntry;
 
 	private String insertString;
+	private String insertStartString;
 
 	private TextFieldWidget editNameField;
 	private TextFieldWidget editValueField;
 
-	public EntityMenuEditScreen(PairList<String, String> interactions) {
+	public EntityMenuEditScreen(MutablePairList<String, String> interactions) {
 		super(new LiteralText("Interaction Edit Screen"));
 
 		this.interactions = interactions;
@@ -67,14 +73,15 @@ public class EntityMenuEditScreen extends WindowScreen {
 	}
 
 	@Override
-	public void render(MatrixStack matrix, int mouseX, int mouseY, float delta) {
-		renderBackground(matrix);
-		super.render(matrix, mouseX, mouseY, delta);
+	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+		renderBackground(matrices);
+		super.render(matrices, mouseX, mouseY, delta);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public void onRenderWindow(MatrixStack matrix, int window, int mouseX, int mouseY) {
-		super.onRenderWindow(matrix, window, mouseX, mouseY);
+	public void onRenderWindow(MatrixStack matrices, int window, int mouseX, int mouseY) {
+		super.onRenderWindow(matrices, window, mouseX, mouseY);
 
 		if (window == 0) {
 			int x = getWindow(0).x1;
@@ -87,16 +94,17 @@ public class EntityMenuEditScreen extends WindowScreen {
 			scrollOffset = 0;
 			addEntry = false;
 			insertString = null;
+			insertStartString = null;
 
 			int seperator = (int) (x + w / 3.25);
-			fill(matrix, seperator, y, seperator + 1, y + h, 0xff606090);
+			fill(matrices, seperator, y, seperator + 1, y + h, 0xff606090);
 
-			textRenderer.drawWithShadow(matrix, "Interactions:", x + 6, y + 5, 0xffffff);
+			textRenderer.drawWithShadow(matrices, "Interactions:", x + 6, y + 5, 0xffffff);
 
 			boolean mouseOverAdd = mouseX >= seperator - 16 && mouseX <= seperator - 3 && mouseY >= y + 3 && mouseY <= y + 15;
-			Window.fill(matrix, seperator - 16, y + 3, seperator - 3, y + 15,
+			Window.fill(matrices, seperator - 16, y + 3, seperator - 3, y + 15,
 					mouseOverAdd ? 0x4fb070f0 : 0x60606090);
-			textRenderer.drawWithShadow(matrix, "\u00a7a+", seperator - 12, y + 5, 0xffffff);
+			textRenderer.drawWithShadow(matrices, "\u00a7a+", seperator - 12, y + 5, 0xffffff);
 
 			if (mouseOverAdd) {
 				addEntry = true;
@@ -110,9 +118,9 @@ public class EntityMenuEditScreen extends WindowScreen {
 			if (scroll > 0) {
 				boolean mouseOver = mouseX >= x + 2 && mouseX <= seperator - 1 && mouseY >= y + 17 && mouseY <= y + 33;
 
-				Window.fill(matrix, x + 3, y + 17, seperator - 2, y + 33,
+				Window.fill(matrices, x + 3, y + 17, seperator - 2, y + 33,
 						mouseOver ? 0x4fb070f0 : 0x50606090);
-				drawCenteredString(matrix, textRenderer,
+				drawCenteredText(matrices, textRenderer,
 						"\u00a7a\u00a7l^", x + (seperator - x) / 2, y + 21, 0xffffff);
 
 				entries++;
@@ -124,9 +132,9 @@ public class EntityMenuEditScreen extends WindowScreen {
 			if (interactions.size() - maxEntries > 0 && scroll < interactions.size() - maxEntries) {
 				boolean mouseOver = mouseX >= x + 2 && mouseX <= seperator - 1 && mouseY >= y + 17 + (maxEntries * 17) && mouseY <= y + 33 + (maxEntries * 17);
 
-				Window.fill(matrix, x + 3, y + 17 + (maxEntries * 17), seperator - 2, y + 33 + (maxEntries * 17),
+				Window.fill(matrices, x + 3, y + 17 + (maxEntries * 17), seperator - 2, y + 33 + (maxEntries * 17),
 						mouseOver ? 0x4fb070f0 : 0x50606090);
-				drawCenteredString(matrix, textRenderer,
+				drawCenteredText(matrices, textRenderer,
 						"\u00a7a\u00a7lv", x + (seperator - x) / 2, y + 21 + (maxEntries * 17), 0xffffff);
 
 				maxEntries--;
@@ -145,9 +153,9 @@ public class EntityMenuEditScreen extends WindowScreen {
 				int curY = y + 17 + entries * 17;
 				boolean mouseOver = mouseX >= x + 2 && mouseX <= seperator - 1 && mouseY >= curY && mouseY <= curY + 16;
 
-				Window.fill(matrix, x + 3, curY, seperator - 2, curY + 16,
+				Window.fill(matrices, x + 3, curY, seperator - 2, curY + 16,
 						entry.equals(selectedEntry) ? 0x4f90f090 : mouseOver ? 0x4fb070f0 : 0x50606090);
-				drawCenteredString(matrix, textRenderer,
+				drawCenteredText(matrices, textRenderer,
 						textRenderer.trimToWidth(entry, seperator - x - 6), x + (seperator - x) / 2, curY + 4, 0xffffff);
 
 				if (mouseOver) {
@@ -161,21 +169,21 @@ public class EntityMenuEditScreen extends WindowScreen {
 			}
 
 			if (selectedEntry != null) {
-				textRenderer.drawWithShadow(matrix, "Name:", seperator + 8, y + 5, 0xffffff);
+				textRenderer.drawWithShadow(matrices, "Name:", seperator + 8, y + 5, 0xffffff);
 
 				editNameField.x = seperator + 8;
 				editNameField.y = y + 18;
 				editNameField.setWidth(w - (seperator - x) - 16);
-				editNameField.render(matrix, mouseX, mouseY, client.getTickDelta());
+				editNameField.render(matrices, mouseX, mouseY, client.getTickDelta());
 
-				textRenderer.drawWithShadow(matrix, "Value:", seperator + 8, y + 45, 0xffffff);
+				textRenderer.drawWithShadow(matrices, "Value:", seperator + 8, y + 45, 0xffffff);
 
 				editValueField.x = seperator + 8;
 				editValueField.y = y + 57;
 				editValueField.setWidth(w - (seperator - x) - 16);
-				editValueField.render(matrix, mouseX, mouseY, client.getTickDelta());
+				editValueField.render(matrices, mouseX, mouseY, client.getTickDelta());
 
-				if (!selectedEntry.equals(editNameField.getText())) {
+				if (!selectedEntry.equals(editNameField.getText()) && !interactions.containsKey(editNameField.getText())) {
 					MutablePair<String, String> pair = interactions.getPair(selectedEntry);
 					selectedEntry = editNameField.getText();
 					pair.setLeft(selectedEntry);
@@ -185,7 +193,7 @@ public class EntityMenuEditScreen extends WindowScreen {
 					interactions.getPair(selectedEntry).setRight(editValueField.getText());
 				}
 
-				textRenderer.drawWithShadow(matrix, "Insert:", seperator + 8, y + 85, 0xffffff);
+				textRenderer.drawWithShadow(matrices, "Insert:", seperator + 8, y + 85, 0xffffff);
 
 				int line = 0;
 				int curX = 0;
@@ -198,8 +206,8 @@ public class EntityMenuEditScreen extends WindowScreen {
 					}
 
 					boolean mouseOverInsert = mouseX >= seperator + 7 + curX && mouseX <= seperator + 10 + curX + textLen && mouseY >= y + 97 + line * 14 && mouseY <= y + 108 + line * 14;
-					fill(matrix, seperator + 7 + curX, y + 97 + line * 14, seperator + 10 + curX + textLen, y + 108 + line * 14, mouseOverInsert ? 0x9f6060b0 : 0x9f8070b0);
-					textRenderer.drawWithShadow(matrix, insert, seperator + 9 + curX, y + 99 + line * 14, 0xffffff);
+					fill(matrices, seperator + 7 + curX, y + 97 + line * 14, seperator + 10 + curX + textLen, y + 108 + line * 14, mouseOverInsert ? 0x9f6060b0 : 0x9f8070b0);
+					textRenderer.drawWithShadow(matrices, insert, seperator + 9 + curX, y + 99 + line * 14, 0xffffff);
 					
 					if (mouseOverInsert) {
 						insertString = insert;
@@ -207,10 +215,34 @@ public class EntityMenuEditScreen extends WindowScreen {
 					
 					curX += textLen + 7;
 				}
+				
+				textRenderer.drawWithShadow(matrices, "Mode:", seperator + 8, y + 120 + line * 14, 0xffffff);
+
+				int startY = y + 132 + line * 14;
+				line = 0;
+				curX = 0;
+				for (Pair<String, String> pair: new Pair[] { Pair.of("Normal", ""), Pair.of("Suggest", ">suggest "), Pair.of("Open Url", ">url ") }) {
+					int textLen = textRenderer.getWidth(pair.getLeft());
+					
+					if (seperator + 9 + curX + textLen > x + w) {
+						line++;
+						curX = 0;
+					}
+
+					boolean mouseOverInsert = mouseX >= seperator + 7 + curX && mouseX <= seperator + 10 + curX + textLen && mouseY >= startY + line * 14 && mouseY <= startY + 11 + line * 14;
+					fill(matrices, seperator + 7 + curX, startY + line * 14, seperator + 10 + curX + textLen, startY + 11 + line * 14, mouseOverInsert ? 0x9f6060b0 : 0x9f8070b0);
+					textRenderer.drawWithShadow(matrices, pair.getLeft(), seperator + 9 + curX, startY + 2 + line * 14, 0xffffff);
+					
+					if (mouseOverInsert) {
+						insertStartString = pair.getRight();
+					}
+					
+					curX += textLen + 7;
+				}
 
 				boolean mouseOverDelete = mouseX >= x + w - 70 && mouseX <= x + w - 5 && mouseY >= y + h - 22 && mouseY <= y + h - 4;
-				Window.fill(matrix, x + w - 70, y + h - 22, x + w - 5, y + h - 4, 0x60e05050, 0x60c07070, mouseOverDelete ? 0x20e05050 : 0x10e07070);
-				drawCenteredString(matrix, textRenderer, "Delete", x + w - 37, y + h - 17, 0xf0f0f0);
+				Window.fill(matrices, x + w - 70, y + h - 22, x + w - 5, y + h - 4, 0x60e05050, 0x60c07070, mouseOverDelete ? 0x20e05050 : 0x10e07070);
+				drawCenteredText(matrices, textRenderer, "Delete", x + w - 37, y + h - 17, 0xf0f0f0);
 
 				if (mouseOverDelete) {
 					deleteEntry = selectedEntry;
@@ -244,8 +276,8 @@ public class EntityMenuEditScreen extends WindowScreen {
 			editValueField.setText(interactions.getValue(selectedEntry));
 		}
 
-		if (deleteEntry != null && interactions.containsKey(deleteEntry)) {
-			interactions.remove(interactions.getPair(deleteEntry));
+		if (deleteEntry != null) {
+			interactions.removeKey(deleteEntry);
 			deleteEntry = null;
 			selectedEntry = null;
 		}
@@ -256,12 +288,26 @@ public class EntityMenuEditScreen extends WindowScreen {
 		}
 
 		if (addEntry) {
-			interactions.add(new MutablePair<>(RandomStringUtils.randomAlphabetic(6), "bruh"));
+			String name = "New Interaction";
+			for (int toAdd = 1; interactions.containsKey(name); toAdd++) {
+				name = "New Interaction (" + toAdd + ")";
+			}
+
+			interactions.add(name, "Hi %name%");
 			addEntry = false;
 		}
 
 		if (insertString != null) {
 			editValueField.write(insertString);
+			insertString = null;
+		}
+		
+		if (insertStartString != null) {
+			if (editValueField.getText().startsWith(">")) {
+				editValueField.setText(editValueField.getText().replaceFirst(">.*? ", ""));
+			}
+
+			editValueField.setText(insertStartString + editValueField.getText());
 			insertString = null;
 		}
 

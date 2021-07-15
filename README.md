@@ -7,12 +7,20 @@
 ![](https://img.shields.io/badge/daily%20commit-yes-blue?style=flat-square)
 ![](https://img.shields.io/discord/620600892718055434?style=flat-square)
 
-Very cool client.
-
-Works on fabric 1.16 & 1.17 Snapshots (1.14-1.15 is discontinued).
+Obama client for Fabric 1.16 & 1.17 (1.14-1.15 is discontinued).
 
 > Website: https://bleachhack.github.io/  
-> Discord: https://discord.gg/b5Wc4nQ
+> Discord: https://bleachhack.github.io/discord
+
+## Showcase
+<details>
+ <summary>Images</summary>
+
+ ![](https://github.com/BleachDrinker420/BH-resources/raw/main/images/ClickguiShowcase.jpg)
+
+ ![](https://github.com/BleachDrinker420/BH-resources/raw/main/images/RenderShowcase.jpg)
+
+</details>
 
 ## Installation
 ### For normal people
@@ -53,6 +61,8 @@ Generate the needed files for your preferred IDE.
 
   Use [this link](https://fabricmc.net/wiki/tutorial:setup) for more information.
   It should be pretty similar to the eclipse setup.
+  
+###### *Note: Java 16 is required for 1.17+*
 
 ## Recommended Mods
 

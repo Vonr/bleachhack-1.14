@@ -1,28 +1,19 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventOpenScreen;
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventSendPacket;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
@@ -45,12 +36,12 @@ public class AutoReconnect extends Module {
 	public ServerInfo server;
 
 	public AutoReconnect() {
-		super("AutoReconnect", KEY_UNBOUND, Category.MISC, "Shows reconnect options when disconnecting from a server",
+		super("AutoReconnect", KEY_UNBOUND, ModuleCategory.MISC, "Shows reconnect options when disconnecting from a server",
 				new SettingToggle("Auto", true).withDesc("Automatically reconnects").withChildren(
 						new SettingSlider("Time", 0.2, 10, 5, 2).withDesc("How long to wait before reconnecting")));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onOpenScreen(EventOpenScreen event) {
 		if (event.getScreen() instanceof DisconnectedScreen
 				&& !(event.getScreen() instanceof NewDisconnectScreen)) {
@@ -59,7 +50,7 @@ public class AutoReconnect extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void readPacket(EventReadPacket event) {
 		if (event.getPacket() instanceof DisconnectS2CPacket) {
 			try {
@@ -69,7 +60,7 @@ public class AutoReconnect extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void sendPacket(EventSendPacket event) {
 		if (event.getPacket() instanceof HandshakeC2SPacket) {
 			server = new ServerInfo("Server",
@@ -107,8 +98,8 @@ public class AutoReconnect extends Module {
 					}));
 		}
 
-		public void render(MatrixStack matrix, int mouseX, int mouseY, float delta) {
-			super.render(matrix, mouseX, mouseY, delta);
+		public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+			super.render(matrices, mouseX, mouseY, delta);
 
 			buttons.get(2).setMessage(new LiteralText((getSetting(0).asToggle().state ? "\u00a7aAutoReconnect ["
 					+ ((reconnectTime + getSetting(0).asToggle().getChild(0).asSlider().getValue() * 1000) - System.currentTimeMillis())

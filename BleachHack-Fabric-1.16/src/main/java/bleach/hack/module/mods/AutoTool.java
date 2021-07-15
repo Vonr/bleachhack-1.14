@@ -1,10 +1,18 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventSendPacket;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingToggle;
 import net.minecraft.block.BlockState;
@@ -25,13 +33,13 @@ public class AutoTool extends Module {
 	private int queueSlot = -1;
 
 	public AutoTool() {
-		super("AutoTool", KEY_UNBOUND, Category.PLAYER, "Automatically uses best tool",
+		super("AutoTool", KEY_UNBOUND, ModuleCategory.PLAYER, "Automatically uses best tool",
 				new SettingToggle("Anti Break", false).withDesc("Doesn't use tool if its about to break"),
 				new SettingToggle("Switch Back", true).withDesc("Switches back to your previous item when done breaking"),
 				new SettingToggle("DurabilitySave", true).withDesc("Swiches to a non-damagable item if possible"));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onPacketSend(EventSendPacket event) {
 		if (event.getPacket() instanceof PlayerActionC2SPacket) {
 			PlayerActionC2SPacket p = (PlayerActionC2SPacket) event.getPacket();
@@ -73,7 +81,7 @@ public class AutoTool extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (queueSlot != -1) {
 			mc.player.inventory.selectedSlot = queueSlot;

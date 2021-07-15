@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.setting.base;
 
@@ -29,7 +20,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import bleach.hack.gui.clickgui.window.ModuleWindow;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -57,11 +48,11 @@ public class SettingToggle extends SettingBase {
 		return text;
 	}
 
-	public void render(ModuleWindow window, MatrixStack matrix, int x, int y, int len) {
+	public void render(ModuleWindow window, MatrixStack matrices, int x, int y, int len) {
 		String color2 = state ? "\u00a7a" : "\u00a7c";
 
 		if (window.mouseOver(x, y, x + len, y + 12)) {
-			DrawableHelper.fill(matrix, x + 1, y, x + len, y + 12, 0x70303070);
+			DrawableHelper.fill(matrices, x + 1, y, x + len, y + 12, 0x70303070);
 		}
 
 		if (!children.isEmpty()) {
@@ -71,33 +62,33 @@ public class SettingToggle extends SettingBase {
 			}
 
 			if (expanded) {
-				DrawableHelper.fill(matrix, x + 2, y + 12, x + 3, y + getHeight(len) - 1, 0xff8070b0);
+				DrawableHelper.fill(matrices, x + 2, y + 12, x + 3, y + getHeight(len) - 1, 0xff8070b0);
 
 				int h = y + 12;
 				for (SettingBase s : children) {
-					s.render(window, matrix, x + 2, h, len - 2);
+					s.render(window, matrices, x + 2, h, len - 2);
 
 					h += s.getHeight(len - 3);
 				}
 			}
 
 			if (expanded) {
-				MinecraftClient.getInstance().textRenderer.drawWithShadow(matrix,
+				MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices,
 						color2 + "\u2228",
 						x + len - 8, y + 3, -1);
 			} else {
-				matrix.push();
+				matrices.push();
 
-				matrix.scale(0.75f, 0.75f, 1f);
-				MinecraftClient.getInstance().textRenderer.drawWithShadow(matrix,
+				matrices.scale(0.75f, 0.75f, 1f);
+				MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices,
 						color2 + "\u00a7l>",
 						(int) ((x + len - 7) * 1 / 0.75), (int) ((y + 4) * 1 / 0.75), -1);
 
-				matrix.pop();
+				matrices.pop();
 			}
 		}
 
-		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrix, color2 + text, x + 3, y + 2, 0xffffff);
+		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices, color2 + text, x + 3, y + 2, 0xffffff);
 
 		if (window.mouseOver(x, y, x + len, y + 12) && window.lmDown) {
 			state = !state;

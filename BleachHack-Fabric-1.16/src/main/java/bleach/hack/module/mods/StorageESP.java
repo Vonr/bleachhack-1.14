@@ -1,38 +1,29 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Random;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 import com.google.gson.JsonSyntaxException;
 
 import bleach.hack.event.events.EventBlockEntityRender;
 import bleach.hack.event.events.EventEntityRender;
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -40,6 +31,7 @@ import bleach.hack.setting.base.SettingToggle;
 import bleach.hack.util.render.RenderUtils;
 import bleach.hack.util.render.color.QuadColor;
 import bleach.hack.util.shader.OutlineShaderManager;
+import bleach.hack.util.shader.OutlineVertexConsumers;
 import bleach.hack.util.shader.StaticShaders;
 import bleach.hack.util.shader.StringShaderEffect;
 import net.minecraft.block.Block;
@@ -57,9 +49,11 @@ import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.gl.ShaderEffect;
-import net.minecraft.client.render.BufferBuilderStorage;
 import net.minecraft.client.render.OutlineVertexConsumerProvider;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+import net.minecraft.client.render.block.entity.BlockEntityRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.decoration.ItemFrameEntity;
@@ -84,9 +78,9 @@ public class StorageESP extends Module {
 	private boolean shaderUnloaded = true;
 
 	public StorageESP() {
-		super("StorageESP", KEY_UNBOUND, Category.RENDER, "Draws a box around storage containers.",
+		super("StorageESP", KEY_UNBOUND, ModuleCategory.RENDER, "Draws a box around storage containers.",
 				new SettingMode("Render", "Shader", "Box+Fill", "Box", "Fill"),
-				new SettingSlider("Shader", 0, 3, 1.5, 1).withDesc("The thickness of the shader outline"),
+				new SettingSlider("Shader", 0, 6, 2, 0).withDesc("The thickness of the shader outline"),
 				new SettingSlider("Box", 0.1, 4, 2, 1).withDesc("The thickness of the box lines"),
 				new SettingSlider("Fill", 0, 1, 0.3, 2).withDesc("The opacity of the fill"),
 
@@ -108,19 +102,15 @@ public class StorageESP extends Module {
 		blockEntities.clear();
 		entities.clear();
 
-		for (Entity e: mc.world.getEntities()) {
-			e.setGlowing(false);
-		}
-
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		blockEntities.clear();
 		entities.clear();
 
-		for (BlockEntity be: new ArrayList<>(mc.world.blockEntities)) {
+		for (BlockEntity be: mc.world.blockEntities) {
 			float[] color = getColorForBlock(be);
 
 			if (color != null) {
@@ -138,7 +128,7 @@ public class StorageESP extends Module {
 
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onRender(EventWorldRender.Post event) {
 		if (getSetting(0).asMode().mode >= 1) {
 			for (Entry<BlockEntity, float[]> e: blockEntities.entrySet()) {
@@ -192,7 +182,7 @@ public class StorageESP extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onBlockEntityRenderPre(EventBlockEntityRender.PreAll event) throws JsonSyntaxException, IOException {
 		if (getSetting(0).asMode().mode == 0) {
 			if (mc.getWindow().getFramebufferWidth() != lastWidth || mc.getWindow().getFramebufferHeight() != lastHeight
@@ -200,8 +190,8 @@ public class StorageESP extends Module {
 				try {
 					ShaderEffect shader = new StringShaderEffect(mc.getFramebuffer(), mc.getResourceManager(), mc.getTextureManager(),
 							StaticShaders.MC_SHADER_UNFOMATTED
-							.replace("%1", "" + getSetting(1).asSlider().getValue())
-							.replace("%2", "" + (getSetting(1).asSlider().getValue() / 2)));
+							.replace("%1", "" + getSetting(1).asSlider().getValue() / 2)
+							.replace("%2", "" + getSetting(1).asSlider().getValue() / 4));
 
 					shader.setupDimensions(mc.getWindow().getFramebufferWidth(), mc.getWindow().getFramebufferHeight());
 					lastWidth = mc.getWindow().getFramebufferWidth();
@@ -220,22 +210,51 @@ public class StorageESP extends Module {
 		}
 	}
 
-	@Subscribe
-	public void onBlockEntityRender(EventBlockEntityRender.Single.Pre event) {
-		if (getSetting(0).asMode().mode == 0 && blockEntities.containsKey(event.getBlockEntity())) {
-			float[] color = blockEntities.get(event.getBlockEntity());
-			event.setVertexConsumers(getOutline(mc.getBufferBuilders(), color[0], color[1], color[2]));
+	@BleachSubscribe
+	public void onBlockEntityRender(EventBlockEntityRender.PreAll event) {
+		if (getSetting(0).asMode().mode == 0) {
+			for (Entry<BlockEntity, float[]> be: blockEntities.entrySet()) {
+				BlockEntityRenderer<BlockEntity> beRenderer = BlockEntityRenderDispatcher.INSTANCE.get(be.getKey());
+	
+				BlockPos pos = be.getKey().getPos();
+				MatrixStack matrices = RenderUtils.matrixFrom(pos.getX(), pos.getY(), pos.getZ());
+				if (beRenderer != null) {
+					beRenderer.render(
+							be.getKey(),
+							mc.getTickDelta(),
+							matrices,
+							OutlineVertexConsumers.outlineOnlyProvider(be.getValue()[0], be.getValue()[1], be.getValue()[2], 1f),
+							0xf000f0, OverlayTexture.DEFAULT_UV);
+				} else {
+					BlockState state = be.getKey().getCachedState();
+	
+					mc.getBlockRenderManager().getModelRenderer().render(
+							mc.world,
+							mc.getBlockRenderManager().getModel(state),
+							state,
+							BlockPos.ORIGIN,
+							matrices,
+							OutlineVertexConsumers.outlineOnlyConsumer(be.getValue()[0], be.getValue()[1], be.getValue()[2], 1f),
+							false,
+							new Random(),
+							0L,
+							OverlayTexture.DEFAULT_UV);
+				}
+			}
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onEntityRender(EventEntityRender.Single.Pre event) {
-		if (getSetting(0).asMode().mode == 0 && entities.containsKey(event.getEntity())) {
+		if (getSetting(0).asMode().mode == 0) {
 			float[] color = entities.get(event.getEntity());
-			event.setVertex(getOutline(mc.getBufferBuilders(), color[0], color[1], color[2]));
-			event.getEntity().setGlowing(true);
-		} else {
-			event.getEntity().setGlowing(false);
+			
+			if (color != null) {
+				OutlineVertexConsumerProvider ovsp = mc.getBufferBuilders().getOutlineVertexConsumers();
+				ovsp.setColor((int) (color[0] * 255), (int) (color[1] * 255), (int) (color[2] * 255), 255);
+
+				event.setVertex(ovsp);
+			}
 		}
 	}
 
@@ -281,7 +300,7 @@ public class StorageESP extends Module {
 		return null;
 	}
 
-	/** returns the direction of the other chest if its linked, othwise null **/
+	/** returns the direction of the other chest if its linked, otherwise null **/
 	private Direction getChestDirection(BlockPos pos) {
 		BlockState state = mc.world.getBlockState(pos);
 
@@ -290,11 +309,5 @@ public class StorageESP extends Module {
 		}
 
 		return null;
-	}
-
-	private VertexConsumerProvider getOutline(BufferBuilderStorage buffers, float r, float g, float b) {
-		OutlineVertexConsumerProvider ovsp = buffers.getOutlineVertexConsumers();
-		ovsp.setColor((int) (r * 255), (int) (g * 255), (int) (b * 255), 255);
-		return ovsp;
 	}
 }

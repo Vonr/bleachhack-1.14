@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.gui.clickgui.window;
 
@@ -58,31 +49,32 @@ public class ModuleWindow extends ClickGuiWindow {
 		y2 = getHeight();
 	}
 
-	public void render(MatrixStack matrix, int mouseX, int mouseY) {
-		super.render(matrix, mouseX, mouseY);
-
+	public void render(MatrixStack matrices, int mouseX, int mouseY) {
 		tooltip = null;
 		int x = x1 + 1;
 		int y = y1 + 13;
 		x2 = x + len + 1;
+		y2 = hiding ? y1 + 13 : y1 + 13 + getHeight();
+
+		super.render(matrices, mouseX, mouseY);
 
 		if (hiding) return;
 
 		TextRenderer textRend = mc.textRenderer;
 
 		int curY = 0;
-		for (Entry<Module, Boolean> m : new LinkedHashMap<>(mods).entrySet()) {
+		for (Entry<Module, Boolean> m : mods.entrySet()) {
 			if (mouseOver(x, y + curY, x + len, y + 12 + curY)) {
-				DrawableHelper.fill(matrix, x, y + curY, x + len, y + 12 + curY, 0x70303070);
+				DrawableHelper.fill(matrices, x, y + curY, x + len, y + 12 + curY, 0x70303070);
 			}
-
-			textRend.drawWithShadow(matrix, textRend.trimToWidth(m.getKey().getName(), len),
-					x + 2, y + 2 + curY, m.getKey().isEnabled() ? 0x70efe0 : 0xc0c0c0);
 
 			// If they match: Module gets marked red
 			if (searchedModules != null && searchedModules.contains(m.getKey()) && ModuleManager.getModule("ClickGui").getSetting(1).asToggle().state) {
-				DrawableHelper.fill(matrix, x, y + curY, x + len, y + 12 + curY, 0x50ff0000);
+				DrawableHelper.fill(matrices, x, y + curY, x + len, y + 12 + curY, 0x50ff0000);
 			}
+
+			textRend.drawWithShadow(matrices, textRend.trimToWidth(m.getKey().getName(), len),
+					x + 2, y + 2 + curY, m.getKey().isEnabled() ? 0x70efe0 : 0xc0c0c0);
 
 			// Set which module settings show on
 			if (mouseOver(x, y + curY, x + len, y + 12 + curY)) {
@@ -101,13 +93,13 @@ public class ModuleWindow extends ClickGuiWindow {
 			// draw settings
 			if (m.getValue()) {
 				for (SettingBase s : m.getKey().getSettings()) {
-					s.render(this, matrix, x + 1, y + curY, len - 1);
+					s.render(this, matrices, x + 1, y + curY, len - 1);
 
 					if (!s.getDesc().isEmpty() && mouseOver(x + 2, y + curY, x + len, y + s.getHeight(len) + curY)) {
 						tooltip = s.getGuiDesc(this, x + 1, y + curY, len - 1);
 					}
 
-					DrawableHelper.fill(matrix, x + 1, y + curY, x + 2, y + curY + s.getHeight(len), 0xff8070b0);
+					DrawableHelper.fill(matrices, x + 1, y + curY, x + 2, y + curY + s.getHeight(len), 0xff8070b0);
 
 					curY += s.getHeight(len);
 				}

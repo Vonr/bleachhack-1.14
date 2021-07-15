@@ -1,14 +1,22 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Streams;
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.BleachHack;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -55,13 +63,13 @@ public class Dispenser32k extends Module {
 	private int timer = 0;
 
 	public Dispenser32k() {
-		super("Dispenser32k", KEY_UNBOUND, Category.COMBAT, "ching chong auto32k no skid 2020",
+		super("Dispenser32k", KEY_UNBOUND, ModuleCategory.COMBAT, "ching chong auto32k no skid 2020.",
 				new SettingRotate(true),
-				new SettingToggle("Killaura", true).withDesc("Automatically attacks"),
-				new SettingSlider("CPS", 0, 20, 20, 0).withDesc("Attack Speed"),
-				new SettingMode("CPS", "Clicks/Sec", "Clicks/Tick", "Tick Delay").withDesc("How to interperet CPS"),
-				new SettingToggle("Timeout", false).withDesc("Stops attacks after a few ticks"),
-				new SettingMode("Place", "Auto", "Looking").withDesc("Where to place the dispenser"));
+				new SettingToggle("Killaura", true).withDesc("Automatically attacks."),
+				new SettingSlider("CPS", 0, 20, 20, 0).withDesc("Attack Speed."),
+				new SettingMode("CPS", "Clicks/Sec", "Clicks/Tick", "Tick Delay").withDesc("How to interperet CPS."),
+				new SettingToggle("Timeout", false).withDesc("Stops attacks after a few ticks."),
+				new SettingMode("Place", "Auto", "Looking").withDesc("Where to place the dispenser."));
 	}
 
 	public void onEnable() {
@@ -113,7 +121,7 @@ public class Dispenser32k extends Module {
 
 		if (getSetting(5).asMode().mode == 1) {
 			HitResult ray = mc.player.raycast(5, mc.getTickDelta(), false);
-			pos = new BlockPos(ray.getPos()).up();
+			pos = new BlockPos(ray.getPos().x, Math.ceil(ray.getPos().y), ray.getPos().z);
 
 			double x = pos.getX() - mc.player.getPos().x;
 			double z = pos.getZ() - mc.player.getPos().z;
@@ -131,11 +139,11 @@ public class Dispenser32k extends Module {
 				return;
 			}
 
-			WorldUtils.placeBlock(pos, block, getSetting(0).asRotate(), false, true);
+			WorldUtils.placeBlock(pos, block, getSetting(0).asRotate(), false, false, true);
 
 			WorldUtils.facePosPacket(
 					pos.add(-rot[0], 1, -rot[1]).getX() + 0.5, pos.getY() + 1, pos.add(-rot[0], 1, -rot[1]).getZ() + 0.5);
-			WorldUtils.placeBlock(pos.add(0, 1, 0), dispenser, 0, false, true);
+			WorldUtils.placeBlock(pos.add(0, 1, 0), dispenser, 0, false, false, true);
 			return;
 
 		} else {
@@ -146,10 +154,8 @@ public class Dispenser32k extends Module {
 
 						pos = mc.player.getBlockPos().add(x, y, z);
 
-						if (mc.player.getPos().add(0, mc.player.getEyeHeight(mc.player.getPose()), 0).distanceTo(
-								mc.player.getPos().add(x - rot[0] / 2, y + 0.5, z + rot[1] / 2)) > 4.5
-								|| mc.player.getPos().add(0, mc.player.getEyeHeight(mc.player.getPose()), 0).distanceTo(
-										mc.player.getPos().add(x + 0.5, y + 2.5, z + 0.5)) > 4.5
+						if (mc.player.getEyePos().distanceTo(mc.player.getPos().add(x - rot[0] / 2, y + 0.5, z + rot[1] / 2)) > 4.5
+								|| mc.player.getEyePos().distanceTo(mc.player.getPos().add(x + 0.5, y + 2.5, z + 0.5)) > 4.5
 								|| !(WorldUtils.canPlaceBlock(pos) /* || canPlaceBlock(pos.add(rot[0], 0, rot[1])) */)
 								|| !WorldUtils.isBlockEmpty(pos)
 								|| !WorldUtils.isBlockEmpty(pos.add(rot[0], 0, rot[1]))
@@ -158,7 +164,7 @@ public class Dispenser32k extends Module {
 								|| !WorldUtils.isBlockEmpty(pos.add(rot[0], 1, rot[1])))
 							continue;
 
-						startRot = new float[] { mc.player.yaw, mc.player.pitch };
+						startRot = new float[] { mc.player.getYaw(), mc.player.getPitch() };
 						WorldUtils.facePos(pos.add(-rot[0], 1, -rot[1]).getX() + 0.5, pos.getY() + 1, pos.add(-rot[0], 1, -rot[1]).getZ() + 0.5);
 						WorldUtils.facePosPacket(pos.add(-rot[0], 1, -rot[1]).getX() + 0.5, pos.getY() + 1, pos.add(-rot[0], 1, -rot[1]).getZ() + 0.5);
 						return;
@@ -171,7 +177,7 @@ public class Dispenser32k extends Module {
 		setEnabled(false);
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if ((getSetting(4).asToggle().state && !active && ticksPassed > 25) || (active && !(mc.currentScreen instanceof HopperScreen))) {
 			setEnabled(false);
@@ -181,10 +187,10 @@ public class Dispenser32k extends Module {
 		if (ticksPassed == 1) {
 			// boolean rotate = getSetting(0).toToggle().state;
 
-			WorldUtils.placeBlock(pos, block, 0, false, true);
-			WorldUtils.placeBlock(pos.add(0, 1, 0), dispenser, 0, false, true);
-			mc.player.yaw = startRot[0];
-			mc.player.pitch = startRot[1];
+			WorldUtils.placeBlock(pos, block, 0, false, false, true);
+			WorldUtils.placeBlock(pos.add(0, 1, 0), dispenser, 0, false, false, true);
+			mc.player.setYaw(startRot[0]);
+			mc.player.setPitch(startRot[1]);
 
 			ticksPassed++;
 			return;
@@ -224,26 +230,7 @@ public class Dispenser32k extends Module {
 			// System.out.println(EnchantmentHelper.getEnchantmentLevel(Enchantments.SHARPNESS,
 			// mc.player.getInventory().getCurrentItem()));
 			if (!(gui.getScreenHandler().getSlot(0).getStack().getItem() instanceof AirBlockItem) && active) {
-				int slot = mc.player.getInventory().selectedSlot;
-				boolean pull = false;
-				for (int i = 40; i >= 32; i--) {
-					if (gui.getScreenHandler().getSlot(i).getStack().isEmpty()) {
-						slot = i;
-						pull = true;
-						break;
-					}
-				}
-
-				// mc.playerController.windowClick(gui.inventorySlots.windowId, 0, 0,
-				// ClickType.QUICK_MOVE, mc.player);
-				if (pull) {
-					// mc.interactionManager.method_2906(gui.getContainer().syncId, 0, 0,
-					// SlotActionType.PICKUP, mc.player);
-					// mc.interactionManager.method_2906(gui.getContainer().syncId, slot, 0,
-					// SlotActionType.PICKUP, mc.player);
-					mc.interactionManager.clickSlot(gui.getScreenHandler().syncId, 0, 0, SlotActionType.QUICK_MOVE, mc.player);
-					mc.player.getInventory().selectedSlot = slot - 32;
-				}
+				mc.interactionManager.clickSlot(gui.getScreenHandler().syncId, 0, mc.player.getInventory().selectedSlot, SlotActionType.SWAP, mc.player);
 			}
 		}
 
@@ -256,13 +243,13 @@ public class Dispenser32k extends Module {
 		}
 
 		if (dispenserTicks == 1) {
-			mc.openScreen(null);
-			WorldUtils.placeBlock(pos.add(0, 2, 0), redstone, getSetting(0).asRotate(), false, true);
+			mc.setScreen(null);
+			WorldUtils.placeBlock(pos.add(0, 2, 0), redstone, getSetting(0).asRotate(), false, false, true);
 		}
 
 		if (mc.world.getBlockState(pos.add(rot[0], 1, rot[1])).getBlock() instanceof ShulkerBoxBlock
 				&& mc.world.getBlockState(pos.add(rot[0], 0, rot[1])).getBlock() != Blocks.HOPPER) {
-			WorldUtils.placeBlock(pos.add(rot[0], 0, rot[1]), hopper, getSetting(0).asRotate(), false, true);
+			WorldUtils.placeBlock(pos.add(rot[0], 0, rot[1]), hopper, getSetting(0).asRotate(), false, false, true);
 			openBlock(pos.add(rot[0], 0, rot[1]));
 		}
 

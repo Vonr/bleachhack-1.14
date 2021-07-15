@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
 
@@ -23,6 +14,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
+import bleach.hack.command.exception.CmdSyntaxException;
 import bleach.hack.util.BleachLogger;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.Enchantments;
@@ -34,11 +26,15 @@ import net.minecraft.util.registry.Registry;
 public class CmdEnchant extends Command {
 
 	public CmdEnchant() {
-		super("enchant", "Enchants an item", "enchant <enchant/id> <level> | enchant all <level> | enchant list", CommandCategory.CREATIVE);
+		super("enchant", "Enchants an item.", "enchant <enchant/id> <level> | enchant all <level> | enchant list", CommandCategory.CREATIVE);
 	}
 
 	@Override
 	public void onCommand(String alias, String[] args) throws Exception {
+		if (args.length == 0 || (args.length == 1 && !args[0].equalsIgnoreCase("list"))) {
+			throw new CmdSyntaxException();
+		}
+
 		if (args[0].equalsIgnoreCase("list")) {
 			BleachLogger.infoMessage("\u00a7d[Aqua_Affinity/Aqua] \u00a75[Arthropods] \u00a7d[Blast/Blast_Prot] "
 					+ "\u00a75[Channeling] \u00a7d[Curse_Binding/Binding] \u00a75[Curse_Vanish/Vanish] \u00a7d[Depth_Strider/Strider] "
@@ -53,8 +49,7 @@ public class CmdEnchant extends Command {
 		}
 
 		if (!mc.player.getAbilities().creativeMode) {
-			printSyntaxError("Not In Creative Mode!");
-			return;
+			throw new CmdSyntaxException("Not In Creative Mode!");
 		}
 
 		int level = Integer.parseInt(args[1]);
@@ -183,17 +178,16 @@ public class CmdEnchant extends Command {
 
 	public void enchant(ItemStack item, Enchantment e, int level) {
 		if (e == null) {
-			printSyntaxError("Invalid enchantment!");
-			return;
+			throw new CmdSyntaxException("Invalid enchantment!");
 		}
 
-		if (item.getTag() == null)
-			item.setTag(new NbtCompound());
-		if (!item.getTag().contains("Enchantments", 9)) {
-			item.getTag().put("Enchantments", new NbtList());
+		if (item.getNbt() == null)
+			item.setNbt(new NbtCompound());
+		if (!item.getNbt().contains("Enchantments", 9)) {
+			item.getNbt().put("Enchantments", new NbtList());
 		}
 
-		NbtList listnbt = item.getTag().getList("Enchantments", 10);
+		NbtList listnbt = item.getNbt().getList("Enchantments", 10);
 		NbtCompound compoundnbt = new NbtCompound();
 		compoundnbt.putString("id", String.valueOf(Registry.ENCHANTMENT.getId(e)));
 		compoundnbt.putInt("lvl", level);

@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.setting.base;
 
@@ -21,7 +12,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
 import bleach.hack.gui.clickgui.window.ModuleWindow;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -52,12 +43,12 @@ public class SettingMode extends SettingBase {
 		return text;
 	}
 
-	public void render(ModuleWindow window, MatrixStack matrix, int x, int y, int len) {
+	public void render(ModuleWindow window, MatrixStack matrices, int x, int y, int len) {
 		if (window.mouseOver(x, y, x + len, y + 12)) {
-			DrawableHelper.fill(matrix, x + 1, y, x + len, y + 12, 0x70303070);
+			DrawableHelper.fill(matrices, x + 1, y, x + len, y + 12, 0x70303070);
 		}
 		
-		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrix, text + ": " + modes[mode], x + 3, y + 2, 0xcfe0cf);
+		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices, text + ": " + modes[mode], x + 3, y + 2, 0xcfe0cf);
 
 		if (window.mouseOver(x, y, x + len, y + 12) && window.lmDown) {
 			mode = getNextMode();

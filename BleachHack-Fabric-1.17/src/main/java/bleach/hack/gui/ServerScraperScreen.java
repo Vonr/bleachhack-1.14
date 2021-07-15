@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.gui;
 
@@ -21,6 +12,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
+import bleach.hack.util.BleachLogger;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
@@ -52,13 +44,13 @@ public class ServerScraperScreen extends Screen {
 	public void init() {
 		super.init();
 
-		addButton(new ButtonWidget(width / 2 - 100, height / 3 + 82, 200, 20, new LiteralText("Scrape"), button -> {
+		addDrawableChild(new ButtonWidget(width / 2 - 100, height / 3 + 82, 200, 20, new LiteralText("Scrape"), button -> {
 			try {
 				if (pingers.size() > 0)
 					return;
 				if (ipField.getText().split(":")[0].trim().isEmpty())
 					throw new Exception();
-				System.out.println("Starting scraper...");
+				BleachLogger.logger.info("Starting scraper...");
 				InetAddress ip = InetAddress.getByName(ipField.getText().split(":")[0].trim());
 				checked = 0;
 				working = 0;
@@ -69,7 +61,7 @@ public class ServerScraperScreen extends Screen {
 				return;
 			}
 		}));
-		addButton(new ButtonWidget(width / 2 - 100, height / 3 + 104, 200, 20, new LiteralText("Done"), button -> {
+		addDrawableChild(new ButtonWidget(width / 2 - 100, height / 3 + 104, 200, 20, new LiteralText("Done"), button -> {
 			if (!abort) {
 				abort = true;
 			}
@@ -79,20 +71,20 @@ public class ServerScraperScreen extends Screen {
 		ipField.changeFocus(true);
 	}
 
-	public void render(MatrixStack matrix, int mouseX, int mouseY, float delta) {
-		renderBackground(matrix);
-		drawCenteredString(matrix, textRenderer, "\u00a77IP:", this.width / 2 - 91, this.height / 4 + 18, -1);
-		drawCenteredString(matrix, textRenderer, "\u00a77" + checked + " / 1792 [\u00a7a" + working + "\u00a77]", this.width / 2, this.height / 4 + 58, -1);
-		drawCenteredString(matrix, textRenderer, result, this.width / 2, this.height / 4 + 70, -1);
-		ipField.render(matrix, mouseX, mouseY, delta);
+	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+		renderBackground(matrices);
+		drawCenteredText(matrices, textRenderer, "\u00a77IP:", this.width / 2 - 91, this.height / 4 + 18, -1);
+		drawCenteredText(matrices, textRenderer, "\u00a77" + checked + " / 1792 [\u00a7a" + working + "\u00a77]", this.width / 2, this.height / 4 + 58, -1);
+		drawCenteredText(matrices, textRenderer, result, this.width / 2, this.height / 4 + 70, -1);
+		ipField.render(matrices, mouseX, mouseY, delta);
 
 		if (abort) {
 			result = "\u00a77Aborting.. [" + pingers.size() + "] Left";
 			if (pingers.size() == 0)
-				client.openScreen(new MultiplayerScreen(new TitleScreen()));
+				client.setScreen(new MultiplayerScreen(new TitleScreen()));
 		}
 
-		super.render(matrix, mouseX, mouseY, delta);
+		super.render(matrices, mouseX, mouseY, delta);
 	}
 
 	public void onClose() {
@@ -171,7 +163,7 @@ class BleachServerPinger {
 
 	public void ping(String ip, int port) {
 		server = new ServerInfo(ip, ip + ":" + port, false);
-		System.out.println("Starting Ping " + ip + ":" + port);
+		BleachLogger.logger.info("Starting Ping " + ip + ":" + port);
 		new Thread(() -> {
 			MultiplayerServerListPinger pinger = new MultiplayerServerListPinger();
 			try {
@@ -182,7 +174,7 @@ class BleachServerPinger {
 			}
 			pinger.cancel();
 			done = true;
-			System.out.println("Finished Ping " + ip + ":" + port + " > " + failed);
+			BleachLogger.logger.info("Finished Ping " + ip + ":" + port + " > " + failed);
 		}).start();
 	}
 }

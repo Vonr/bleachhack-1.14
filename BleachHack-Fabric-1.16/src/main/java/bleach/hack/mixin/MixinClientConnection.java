@@ -1,21 +1,15 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.mixin;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,16 +22,17 @@ import bleach.hack.command.Command;
 import bleach.hack.command.CommandManager;
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventSendPacket;
-import bleach.hack.module.ModuleManager;
-import bleach.hack.util.BleachLogger;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.Packet;
-import net.minecraft.network.PacketEncoderException;
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.TextColor;
 
 @Mixin(ClientConnection.class)
 public class MixinClientConnection {
@@ -54,6 +49,8 @@ public class MixinClientConnection {
 
 			if (event.isCancelled()) {
 				callback.cancel();
+			} else if (packet instanceof PlayerListS2CPacket) {
+				handlePlayerList((PlayerListS2CPacket) packet);
 			}
 		}
 	}
@@ -79,15 +76,26 @@ public class MixinClientConnection {
 			callback.cancel();
 		}
 	}
-
-	// Packet kick blocc
-	@Inject(method = "exceptionCaught(Lio/netty/channel/ChannelHandlerContext;Ljava/lang/Throwable;)V", at = @At("HEAD"), cancellable = true)
-	public void exceptionCaught(ChannelHandlerContext channelHandlerContext, Throwable throwable, CallbackInfo callback) {
-		if (ModuleManager.getModule("AntiChunkBan").isEnabled()) {
-			if (!(throwable instanceof PacketEncoderException)) {
-				BleachLogger.warningMessage("Canceled Defect Packet: " + throwable);
-				callback.cancel();
-			}
+	
+	private void handlePlayerList(PlayerListS2CPacket packet) {
+		if (packet.getAction() == PlayerListS2CPacket.Action.ADD_PLAYER) {
+			List<PlayerListS2CPacket.Entry> newEntries = packet.getEntries().stream()
+					.map(e -> {
+						if (e.getProfile().getName().equalsIgnoreCase("bleachhack")) { /* :sunglasses: */
+							MutableText text1 = new LiteralText("Bleach").styled(s -> s.withColor(TextColor.fromRgb(0xffbf30)));
+							MutableText text2 = new LiteralText("Hack ").styled(s -> s.withColor(TextColor.fromRgb(0xffafcc)));
+							return packet.new Entry(e.getProfile(), e.getLatency(), e.getGameMode(), text1.append(text2));
+						} else if (BleachHack.friendMang.has(e.getProfile().getName())) {
+							return packet.new Entry(e.getProfile(), e.getLatency(), e.getGameMode(),
+									new LiteralText("\u00a7b" + e.getProfile().getName()));
+						} else {
+							return e;
+						}
+					})
+					.collect(Collectors.toList());
+			
+			packet.getEntries().clear();
+			packet.getEntries().addAll(newEntries);
 		}
 	}
 }

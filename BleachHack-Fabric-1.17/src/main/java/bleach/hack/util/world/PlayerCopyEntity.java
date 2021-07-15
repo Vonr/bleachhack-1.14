@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.util.world;
 
@@ -25,6 +16,8 @@ import net.minecraft.entity.player.PlayerEntity;
 
 public class PlayerCopyEntity extends OtherClientPlayerEntity {
 
+	private boolean ghost;
+
 	public PlayerCopyEntity() {
 		this(MinecraftClient.getInstance().player);
 	}
@@ -35,26 +28,18 @@ public class PlayerCopyEntity extends OtherClientPlayerEntity {
 
 	public PlayerCopyEntity(PlayerEntity player, double x, double y, double z) {
 		super(MinecraftClient.getInstance().world, player.getGameProfile());
-		
-		updateTrackedPosition(player.getX(), player.getY(), player.getZ());
-		refreshPositionAfterTeleport(player.getX(), player.getY(), player.getZ());
-		pitch = player.pitch;
-		yaw = headYaw = bodyYaw = player.yaw;
-		
+
+		copyFrom(player);
+
 		// Cache the player textures, then switch to a random uuid
 		// because the world doesn't allow duplicate uuids in 1.17+
 		getPlayerListEntry();
+		dataTracker.set(PLAYER_MODEL_PARTS, player.getDataTracker().get(PLAYER_MODEL_PARTS));
 		setUuid(UUID.randomUUID());
-
-		getInventory().main.set(getInventory().selectedSlot, player.getMainHandStack());
-		getInventory().offHand.set(0, player.getOffHandStack());
-		getInventory().armor.set(0, player.getInventory().armor.get(0));
-		getInventory().armor.set(1, player.getInventory().armor.get(1));
-		getInventory().armor.set(2, player.getInventory().armor.get(2));
-		getInventory().armor.set(3, player.getInventory().armor.get(3));
 	}
 
 	public void spawn() {
+		unsetRemoved();
 		MinecraftClient.getInstance().world.addEntity(this.getId(), this);
 	}
 
@@ -62,4 +47,17 @@ public class PlayerCopyEntity extends OtherClientPlayerEntity {
 		MinecraftClient.getInstance().world.removeEntity(this.getId(), RemovalReason.DISCARDED);
 	}
 
+	public void setGhost(boolean ghost) {
+		this.ghost = ghost;
+	}
+
+	@Override
+	public boolean isInvisible() {
+		return ghost ? true : super.isInvisible();
+	}
+
+	@Override
+	public boolean isInvisibleTo(PlayerEntity player) {
+		return ghost ? false : super.isInvisibleTo(player);
+	}
 }

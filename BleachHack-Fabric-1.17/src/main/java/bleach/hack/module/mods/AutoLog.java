@@ -1,10 +1,18 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.BleachHack;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
@@ -23,21 +31,21 @@ public class AutoLog extends Module {
 	private boolean smartDisabled = false;
 
 	public AutoLog() {
-		super("AutoLog", KEY_UNBOUND, Category.COMBAT, "Automatically disconnect from a server",
-				new SettingToggle("Health", true).withDesc("Disconnects when you're under a certain health").withChildren(
-						new SettingSlider("Health", 1, 20, 5, 0).withDesc("The health to log at"),
-						new SettingToggle("IgnoreTotems", false).withDesc("Makes you disconnect even if you have totems"),
-						new SettingToggle("Vehicle", false).withDesc("Also disconnects when your vehicle is below the specified health")),
-				new SettingToggle("OneHit", true).withDesc("Disconnects when a nearby player can kill you in one hit").withChildren(
-						new SettingToggle("IgnoreFriends", true).withDesc("Makes you not disconnect if its a friend")),
-				new SettingToggle("Crystal", false).withDesc("Disconnects when you're near a crystal").withChildren(
-						new SettingSlider("Distance", 0.1, 14, 6, 1).withDesc("The maximun distance to a crystal to log")),
+		super("AutoLog", KEY_UNBOUND, ModuleCategory.COMBAT, "Automatically disconnects from servers.",
+				new SettingToggle("Health", true).withDesc("Disconnects when you're under a certain health.").withChildren(
+						new SettingSlider("Health", 1, 20, 5, 0).withDesc("The health to disconnects at."),
+						new SettingToggle("IgnoreTotems", false).withDesc("Makes you disconnect even if you're carrying totems."),
+						new SettingToggle("Vehicle", false).withDesc("Also disconnects when your vehicle is below the specified health.")),
+				new SettingToggle("OneHit", true).withDesc("Disconnects when a nearby player can kill you in one hit.").withChildren(
+						new SettingToggle("IgnoreFriends", true).withDesc("Makes you not disconnect if the player is on your friend list.")),
+				new SettingToggle("Crystal", false).withDesc("Disconnects when you're near an end crystal.").withChildren(
+						new SettingSlider("Distance", 0.1, 14, 6, 1).withDesc("The maximum distance away from a crystal to disconnect.")),
 				new SettingToggle("PlayerNearby", false).withDesc("Disconnects when a player is in render distance/nearby").withChildren(
-						new SettingToggle("Range", false).withDesc("Disconnects when a player is inside the range instead of in render distance").withChildren(
-								new SettingSlider("Range", 1, 200, 50, 0).withDesc("Range to diconnect at")),
-						new SettingToggle("IgnoreFriends", true).withDesc("Makes you not disconnect if its a friend")),
-				new SettingToggle("SmartToggle", false).withDesc("Re-enables AutoLog when you rejoin and are not meeting the log requirements").withChildren(
-						new SettingToggle("Warn", false).withDesc("Shows in the chat when AutoLog re-enables")));
+						new SettingToggle("Range", false).withDesc("Disconnects when a player is inside a range instead of in render distance.").withChildren(
+								new SettingSlider("Range", 1, 200, 50, 0).withDesc("The range to disconnect at.")),
+						new SettingToggle("IgnoreFriends", true).withDesc("Makes you not disconnect if the player is on your friend list.")),
+				new SettingToggle("SmartToggle", false).withDesc("Re-enables AutoLog after you rejoin and aren't meeting the log requirements.").withChildren(
+						new SettingToggle("Warn", false).withDesc("Shows in the chat when AutoLog re-enables.")));
 	}
 
 	@Override
@@ -47,7 +55,7 @@ public class AutoLog extends Module {
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		Text logText = getLogText();
 		

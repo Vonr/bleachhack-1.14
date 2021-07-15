@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -29,16 +20,17 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
+import bleach.hack.command.Command;
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingToggle;
 import bleach.hack.util.BleachLogger;
-import bleach.hack.util.file.BleachFileMang;
+import bleach.hack.util.io.BleachFileMang;
 import bleach.hack.util.render.RenderUtils;
 import bleach.hack.util.render.color.QuadColor;
 import net.minecraft.block.Blocks;
@@ -65,7 +57,7 @@ public class Notebot extends Module {
 	public static String filePath = "";
 
 	public Notebot() {
-		super("Notebot", KEY_UNBOUND, Category.MISC, "Plays those noteblocks nicely",
+		super("Notebot", KEY_UNBOUND, ModuleCategory.MISC, "Plays those noteblocks nicely",
 				new SettingToggle("Tune", true).withDesc("Tune the noteblocks before and while playing").withChildren(
 						new SettingMode("Tune", "Normal", "Wait-1", "Wait-2", "Batch-5", "All").withDesc("How to tune the noteblocks")),
 				new SettingToggle("Loop", false).withDesc("Loop the song you are playing"),
@@ -82,7 +74,7 @@ public class Notebot extends Module {
 			setEnabled(false);
 			return;
 		} else if (filePath.isEmpty()) {
-			BleachLogger.errorMessage("No File Loaded!, Use .notebot load [File]");
+			BleachLogger.errorMessage("No Song Loaded!, Use " + Command.PREFIX + "notebot to select a song.");
 			setEnabled(false);
 			return;
 		} else {
@@ -124,18 +116,18 @@ public class Notebot extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onRender(EventWorldRender.Post event) {
 		for (Entry<BlockPos, Integer> e : blockTunes.entrySet()) {
 			if (getNote(e.getKey()) != e.getValue()) {
-				RenderUtils.drawBoxBoth(e.getKey(), QuadColor.single(1F, 0F, 0F, 0.8F), 2.5f);
+				RenderUtils.drawBoxBoth(e.getKey(), QuadColor.single(1F, 0F, 0F, 0.4F), 2.5f);
 			} else {
 				RenderUtils.drawBoxBoth(e.getKey(), QuadColor.single(0F, 1F, 0F, 0.4F), 2.5f);
 			}
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		/* Tune Noteblocks */
 		if (getSetting(0).asToggle().state) {

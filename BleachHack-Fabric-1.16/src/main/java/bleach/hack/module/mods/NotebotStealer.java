@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -24,14 +15,14 @@ import java.util.Map.Entry;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.util.BleachLogger;
 import bleach.hack.util.FabricReflect;
-import bleach.hack.util.file.BleachFileMang;
+import bleach.hack.util.io.BleachFileMang;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.sound.SoundCategory;
 
@@ -42,7 +33,7 @@ public class NotebotStealer extends Module {
 	private int ticks = 0;
 
 	public NotebotStealer() {
-		super("NotebotStealer", KEY_UNBOUND, Category.MISC, "Steals noteblock songs");
+		super("NotebotStealer", KEY_UNBOUND, ModuleCategory.MISC, "Steals noteblock songs");
 	}
 
 	@Override
@@ -57,18 +48,21 @@ public class NotebotStealer extends Module {
 	public void onDisable() {
 		super.onDisable();
 		int i = 0;
-		String s = "";
+		StringBuilder s = new StringBuilder();
 
 		while (BleachFileMang.fileExists("notebot", "notebot" + i + ".txt"))
 			i++;
+
 		for (List<Integer> i1 : notes)
-			s += i1.get(0) + ":" + i1.get(1) + ":" + i1.get(2) + "\n";
-		BleachFileMang.appendFile(s, "notebot", "notebot" + i + ".txt");
+			s.append(i1.get(0)).append(":").append(i1.get(1)).append(":").append(i1.get(2)).append("\n");
+
+		BleachFileMang.createEmptyFile("notebot", "notebot" + i + ".txt");
+		BleachFileMang.appendFile(s.toString(), "notebot", "notebot" + i + ".txt");
 		BleachLogger.infoMessage("Saved Song As: notebot" + i + ".txt [" + notes.size() + " Notes]");
 	}
 
 	@SuppressWarnings("unchecked")
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		Multimap<SoundCategory, SoundInstance> soundMap = (Multimap<SoundCategory, SoundInstance>) FabricReflect.getFieldValue(
 				FabricReflect.getFieldValue(mc.getSoundManager(), "field_5590", "soundSystem"), "field_18951", "sounds");

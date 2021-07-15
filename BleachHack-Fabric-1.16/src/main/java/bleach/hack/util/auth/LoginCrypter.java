@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.util.auth;
 
 import java.nio.charset.StandardCharsets;
@@ -10,6 +18,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.hash.Hashing;
+
+import bleach.hack.util.BleachLogger;
 
 public class LoginCrypter {
 
@@ -25,7 +35,7 @@ public class LoginCrypter {
 			key = new SecretKeySpec(pass, "AES");
 			dcipher = Cipher.getInstance("AES");
 		} catch (Exception e) {
-			System.out.println("Error initing login crypter");
+			BleachLogger.logger.error("Error initing login crypter");
 		}
 	}
 

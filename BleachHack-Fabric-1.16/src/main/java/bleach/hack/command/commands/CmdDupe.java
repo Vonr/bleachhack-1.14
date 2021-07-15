@@ -1,73 +1,56 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
-
-import java.util.Random;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
 import bleach.hack.util.BleachLogger;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.network.packet.c2s.play.BookUpdateC2SPacket;
-import net.minecraft.text.LiteralText;
 
 public class CmdDupe extends Command {
 
 	public CmdDupe() {
-		super("dupe", "Dupes items, (Vanilla mode patched on 1.14.4+)", "dupe <vanilla/book>", CommandCategory.MISC);
+		super("dupe", "Dupes items on VANILLA servers using the book dupe", "dupe", CommandCategory.MISC);
 	}
 
 	@Override
 	public void onCommand(String alias, String[] args) throws Exception {
-		if (args.length == 0) {
-			printSyntaxError("Invaild dupe method");
+		if (mc.player.inventory.getMainHandStack().getItem() != Items.WRITABLE_BOOK) {
+			BleachLogger.errorMessage("Not holding a writable book!");
 			return;
 		}
 
-		if (args[0].equalsIgnoreCase("vanilla")) {
-			mc.player.dropSelectedItem(true);
-			mc.player.networkHandler.getConnection().disconnect(new LiteralText("Duping..."));
-		} else if (args[0].equalsIgnoreCase("book")) {
-			ItemStack item = mc.player.inventory.getMainHandStack();
+		NbtList listTag = new NbtList();
 
-			if (item.getItem() != Items.WRITABLE_BOOK) {
-				BleachLogger.errorMessage("Not holding a writable book!");
-				return;
-			}
+		StringBuilder builder1 = new StringBuilder();
+		for(int i = 0; i < 21845; i++)
+			builder1.append((char) 2077);
 
-			IntStream chars = new Random().ints(0, 0x10ffff);
-			String text = chars.limit(25000 * 50).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
+		listTag.add(0, NbtString.of(builder1.toString()));
 
-			ListTag textSplit = new ListTag();
+		StringBuilder builder2 = new StringBuilder();
+		for(int i = 0; i < 32; i++)
+			builder2.append("BleachHK");
 
-			for (int t = 0; t < 50; t++)
-				textSplit.add(StringTag.of(text.substring(t * 25000, (t + 1) * 25000)));
+		String string2 = builder2.toString();
+		for(int i = 1; i < 40; i++)
+			listTag.add(i, NbtString.of(string2));
 
-			item.getOrCreateTag().put("pages", textSplit);
-			mc.player.networkHandler.sendPacket(new BookUpdateC2SPacket(item, false, mc.player.inventory.selectedSlot));
-		} else {
-			printSyntaxError("Invaild dupe method");
-		}
+		ItemStack bookStack = new ItemStack(Items.WRITABLE_BOOK, 1);
+		bookStack.putSubTag("title", NbtString.of("If you can see this, it didn't work"));
+		bookStack.putSubTag("pages", listTag);
+
+		mc.player.networkHandler.sendPacket(new BookUpdateC2SPacket(bookStack, true, mc.player.inventory.selectedSlot));
 	}
 
 }

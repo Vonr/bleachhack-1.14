@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.util;
 
 import java.util.Comparator;
@@ -45,25 +53,22 @@ public class InventoryUtils {
 					mc.player.getInventory().selectedSlot = slot;
 					mc.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(slot));
 				}
-				
+
 				return Hand.MAIN_HAND;
 			} else if (mc.player.playerScreenHandler == mc.player.currentScreenHandler) {
-				if (mc.player.getInventory().getMainHandStack().isEmpty()) {
-					mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 0, SlotActionType.PICKUP, mc.player);
-					mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 36 + mc.player.getInventory().selectedSlot, 0, SlotActionType.PICKUP, mc.player);
-					return Hand.MAIN_HAND;
-				}
-
 				for (int i = 0; i <= 8; i++) {
 					if (mc.player.getInventory().getStack(i).isEmpty()) {
-						mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 0, SlotActionType.PICKUP, mc.player);
-						mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 36 + i, 0, SlotActionType.PICKUP, mc.player);
-						mc.player.getInventory().selectedSlot = i;
-						mc.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(slot));
+						mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 0, SlotActionType.QUICK_MOVE, mc.player);
+
+						if (i != mc.player.getInventory().selectedSlot) {
+							mc.player.getInventory().selectedSlot = i;
+							mc.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(i));
+						}
+
 						return Hand.MAIN_HAND;
 					}
 				}
-				
+
 				mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 0, SlotActionType.PICKUP, mc.player);
 				mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, 36 + mc.player.getInventory().selectedSlot, 0, SlotActionType.PICKUP, mc.player);
 				mc.interactionManager.clickSlot(mc.player.currentScreenHandler.syncId, slot, 0, SlotActionType.PICKUP, mc.player);
@@ -72,7 +77,7 @@ public class InventoryUtils {
 		} else if (slot == 40) {
 			return Hand.OFF_HAND;
 		}
-		
+
 		return null;
 	}
 	

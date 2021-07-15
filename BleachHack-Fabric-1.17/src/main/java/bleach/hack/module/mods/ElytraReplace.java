@@ -1,9 +1,17 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import net.minecraft.item.ElytraItem;
 import net.minecraft.item.ItemStack;
@@ -15,10 +23,10 @@ public class ElytraReplace extends Module {
 	private boolean jump = false;
 
 	public ElytraReplace() {
-		super("ElytraReplace", KEY_UNBOUND, Category.PLAYER, "Automatically replaces broken elytra and continues flying");
+		super("ElytraReplace", KEY_UNBOUND, ModuleCategory.PLAYER, "Automatically replaces your elytra when its broken and continues flying.");
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (mc.player.playerScreenHandler != mc.player.currentScreenHandler)
 			return;

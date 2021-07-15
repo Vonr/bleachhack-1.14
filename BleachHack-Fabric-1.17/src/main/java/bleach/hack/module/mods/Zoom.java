@@ -1,27 +1,18 @@
+
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
-
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
@@ -33,9 +24,9 @@ public class Zoom extends Module {
 	public double prevSens;
 
 	public Zoom() {
-		super("Zoom", KEY_UNBOUND, Category.RENDER, "ok zoomer",
-				new SettingSlider("Scale", 1, 10, 3, 2).withDesc("How much to zoom"),
-				new SettingToggle("Smooth", false).withDesc("Smooths the zoom when enabling and disabling"));
+		super("Zoom", KEY_UNBOUND, ModuleCategory.RENDER, "ok zoomer.",
+				new SettingSlider("Scale", 1, 10, 3, 2).withDesc("How much to zoom."),
+				new SettingToggle("Smooth", false).withDesc("Smooths the zoom when enabling and disabling."));
 	}
 
 	public void onEnable() {
@@ -67,7 +58,7 @@ public class Zoom extends Module {
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (getSetting(0).asSlider().getValue() >= 1 && mc.options.fov > prevFov / getSetting(0).asSlider().getValue()) {
 			mc.options.fov /= 1.4;

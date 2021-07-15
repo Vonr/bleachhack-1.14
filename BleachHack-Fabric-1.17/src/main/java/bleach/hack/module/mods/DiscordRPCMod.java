@@ -1,24 +1,33 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 import com.google.gson.JsonElement;
 
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.BleachHack;
+import bleach.hack.command.Command;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingToggle;
-import bleach.hack.util.DiscordRPCManager;
-import bleach.hack.util.file.BleachFileHelper;
-import net.arikia.dev.drpc.DiscordRPC;
-import net.arikia.dev.drpc.DiscordRichPresence;
+import bleach.hack.util.BleachLogger;
+import bleach.hack.util.io.BleachFileHelper;
+import bleach.hack.util.rpc.DiscordEventHandlers;
+import bleach.hack.util.rpc.DiscordRPCManager;
+import bleach.hack.util.rpc.DiscordRichPresence;
 import net.minecraft.SharedConstants;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 
 public class DiscordRPCMod extends Module {
 
@@ -30,12 +39,12 @@ public class DiscordRPCMod extends Module {
 	private boolean silent;
 
 	public DiscordRPCMod() {
-		super("DiscordRPC", KEY_UNBOUND, Category.MISC, true, "Dicord RPC, use the \"rpc\" command to set a custom status",
-				new SettingMode("Text 1", "Playing %server%", "%server%", "%type%", "%username% ontop", "Minecraft %mcver%", "%username%", "<- bad client", "%custom%").withDesc("Line 1"),
-				new SettingMode("Text 2", "%hp% hp - Holding %item%", "%username% - %hp% hp", "Holding %item%", "%hp% hp - At %coords%", "At %coords%", "%custom%").withDesc("Line 2"),
+		super("DiscordRPC", KEY_UNBOUND, ModuleCategory.MISC, true, "Dicord RPC, use the " + Command.PREFIX + "rpc command to set a custom status.",
+				new SettingMode("Line1", "Playing %server%", "%server%", "%type%", "%username% ontop", "Minecraft %mcver%", "%username%", "<- bad client", "%custom%").withDesc("The top line."),
+				new SettingMode("Line2", "%hp% hp - Holding %item%", "%username% - %hp% hp", "Holding %item%", "%hp% hp - At %coords%", "At %coords%", "%custom%").withDesc("The bottom line."),
 				new SettingMode("Elapsed", "Normal", "Random", "Backwards", "None").withDesc("How to show elapsed time"),
-				new SettingToggle("Silent", false).withDesc("Use a generic Minecraft title and image"));
-		
+				new SettingToggle("Silent", false).withDesc("Use a generic Minecraft title and image."));
+
 		JsonElement t1 = BleachFileHelper.readMiscSetting("discordRPCTopText");
 		JsonElement t2 = BleachFileHelper.readMiscSetting("discordRPCBottomText");
 
@@ -52,18 +61,23 @@ public class DiscordRPCMod extends Module {
 		silent = getSetting(3).asToggle().state;
 
 		tick = 0;
-		DiscordRPCManager.start(silent ? "727434331089272903" : "740928841433743370");
+
+		BleachLogger.logger.info("Initing Discord RPC...");
+		DiscordRPCManager.initialize(silent ? "727434331089272903" : "740928841433743370",
+				new DiscordEventHandlers.Builder()
+				.withReadyEventHandler(user -> BleachLogger.logger.info(user.username + "#" + user.discriminator + " is big gay"))
+				.build());
 
 		super.onEnable();
 	}
 
 	public void onDisable() {
-		DiscordRPCManager.stop();
+		DiscordRPCManager.shutdown();
 
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (silent != getSetting(3).asToggle().state) {
 			onDisable();
@@ -107,7 +121,7 @@ public class DiscordRPCMod extends Module {
 			}
 
 			String name = currentItem.getItem().getName().getString();
-			String itemName = currentItem.getItem() == Items.AIR ? "Nothing"
+			String itemName = currentItem.isEmpty() ? "Nothing"
 					: (currentItem.getCount() > 1 ? currentItem.getCount() + " " : "")
 					+ (currentItem.hasCustomName() ? "\"" + customName + "\" (" + name + ")" : name);
 
@@ -141,21 +155,32 @@ public class DiscordRPCMod extends Module {
 					break;
 			}
 
-			DiscordRPC.discordUpdatePresence(
+			DiscordRPCManager.updatePresence(
 					new DiscordRichPresence.Builder(text2)
-					.setBigImage(silent ? "mc" : "bh15", silent ? "Minecraft " + SharedConstants.getGameVersion().getName() : "BleachHack " + BleachHack.VERSION)
+					.setBigImage(silent ? "mc" : "bh", silent ? "Minecraft " + SharedConstants.getGameVersion().getName() : "BleachHack " + BleachHack.VERSION)
 					.setDetails(text1).setStartTimestamps(start).build());
 		}
 
 		if (tick % 200 == 0) {
-			DiscordRPC.discordRunCallbacks();
+			DiscordRPCManager.runCallbacks();
 		}
 
 		tick++;
 	}
 
-	public void setText(String t1, String t2) {
-		customText1 = t1;
-		customText2 = t2;
+	public void setTopText(String text) {
+		customText1 = text;
+	}
+
+	public void setBottomText(String text) {
+		customText2 = text;
+	}
+
+	public String getTopText() {
+		return customText1;
+	}
+
+	public String getBottomText() {
+		return customText2;
 	}
 }

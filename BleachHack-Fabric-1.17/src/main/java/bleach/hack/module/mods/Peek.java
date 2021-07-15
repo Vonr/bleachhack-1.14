@@ -1,14 +1,22 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.Arrays;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.datafixers.util.Either;
 
-import bleach.hack.event.events.EventDrawTooltip;
-import bleach.hack.module.Category;
+import bleach.hack.event.events.EventRenderTooltip;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -21,14 +29,17 @@ import net.minecraft.block.Block;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.block.HopperBlock;
-import net.minecraft.block.MapColor;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.screen.ingame.BookScreen;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.util.math.MatrixStack;
@@ -39,57 +50,66 @@ import net.minecraft.item.Items;
 import net.minecraft.item.map.MapState;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.text.Text;
+import net.minecraft.text.TranslatableText;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Matrix4f;
 
 public class Peek extends Module {
 
+	private static final RenderLayer MAP_BACKGROUND_CHECKERBOARD = RenderLayer.getText(new Identifier("textures/map/map_background_checkerboard.png"));
+
 	private List<List<String>> pages;
-	private int[] slotPos;
+	private int slotX = -1;
+	private int slotY = -1;
 	private int pageCount = 0;
 	private boolean shown = false;
 
 	public Peek() {
-		super("Peek", KEY_UNBOUND, Category.MISC, "Shows whats inside containers",
-				new SettingToggle("Containers", true).withDesc("Shows a tooltip for containers").withChildren(
-						new SettingMode("Info", "All", "Name", "None").withDesc("How to show the old tooltip")),
-				new SettingToggle("Books", true).withDesc("Show tooltips for books"),
-				new SettingToggle("Maps", true).withDesc("Show tooltips for maps").withChildren(
-						new SettingSlider("Map Size", 0.25, 1.5, 0.5, 2).withDesc("How big to make the map")));
+		super("Peek", KEY_UNBOUND, ModuleCategory.MISC, "Shows whats inside containers.",
+				new SettingToggle("Containers", true).withDesc("Shows a tooltip for containers.").withChildren(
+						new SettingMode("Info", "All", "Name", "None").withDesc("How to show the old tooltip.")),
+				new SettingToggle("Books", true).withDesc("Show tooltips for books."),
+				new SettingToggle("Maps", true).withDesc("Show tooltips for maps.").withChildren(
+						new SettingSlider("Map Size", 0.25, 1.5, 0.85, 2).withDesc("How big to make the map.")));
 	}
 
-	@Subscribe
-	public void drawScreen(EventDrawTooltip event) {
-		if (!(event.screen instanceof HandledScreen)) {
+	@BleachSubscribe
+	public void drawScreen(EventRenderTooltip event) {
+		if (!(event.getScreen() instanceof HandledScreen)) {
 			return;
 		}
 
-		Slot slot = (Slot) FabricReflect.getFieldValue(event.screen, "field_2787", "focusedSlot");
+		Slot slot = (Slot) FabricReflect.getFieldValue(event.getScreen(), "field_2787", "focusedSlot");
 		if (slot == null)
 			return;
 
-		if (!Arrays.equals(new int[] { slot.x, slot.y }, slotPos)) {
+		if (slot.x != slotX || slot.y != slotY) {
 			pageCount = 0;
 			pages = null;
+
+			slotX = slot.x;
+			slotY = slot.y;
 		}
 
-		slotPos = new int[] { slot.x, slot.y };
+		event.getMatrix().push();
+		event.getMatrix().translate(0, 0, 400);
 
-		event.matrix.push();
-		event.matrix.translate(0, 0, 300);
+		if (getSetting(0).asToggle().state) {
+			Either<Boolean, List<Text>> either = drawShulkerToolTip(event.getMatrix(), slot, event.getMouseX(), event.getMouseY());
+			if (either != null) {
+				either.ifLeft(event::setCancelled).ifRight(event::setText);
+			}
+		}
 
-		if (getSetting(0).asToggle().state)
-			drawShulkerToolTip(event, slot, event.mouseX, event.mouseY);
-		if (getSetting(1).asToggle().state)
-			drawBookToolTip(event.matrix, slot, event.mouseX, event.mouseY);
-		if (getSetting(2).asToggle().state)
-			drawMapToolTip(event.matrix, slot, event.mouseX, event.mouseY);
+		if (getSetting(1).asToggle().state) drawBookToolTip(event.getMatrix(), slot, event.getMouseX(), event.getMouseY());
+		if (getSetting(2).asToggle().state) drawMapToolTip(event.getMatrix(), slot, event.getMouseX(), event.getMouseY());
 
-		event.matrix.pop();
+		event.getMatrix().pop();
 	}
 
-	public void drawShulkerToolTip(EventDrawTooltip event, Slot slot, int mouseX, int mouseY) {
+	public Either<Boolean, List<Text>> drawShulkerToolTip(MatrixStack matrices, Slot slot, int mouseX, int mouseY) {
 		if (!(slot.getStack().getItem() instanceof BlockItem)) {
-			return;
+			return null;
 		}
 
 		Block block = ((BlockItem) slot.getStack().getItem()).getBlock();
@@ -100,32 +120,21 @@ public class Peek extends Module {
 				&& !(block instanceof DispenserBlock)
 				&& !(block instanceof HopperBlock)
 				&& !(block instanceof AbstractFurnaceBlock)) {
-			return;
+			return null;
 		}
 
 		List<ItemStack> items = ItemContentUtils.getItemsInContainer(slot.getStack());
 
 		if (items.stream().allMatch(ItemStack::isEmpty)) {
-			return;
+			return null;
 		}
 
-		if (getSetting(0).asToggle().getChild(0).asMode().mode == 2) {
-			event.setCancelled(true);
-		} else if (getSetting(0).asToggle().getChild(0).asMode().mode == 1) {
-			event.text = Lists.transform(Arrays.asList(slot.getStack().getName()), Text::asOrderedText);
-		}
+		int mode = getSetting(0).asToggle().getChild(0).asMode().mode;
+		int realY = mode == 2 ? mouseY + 24 : mouseY;
+		int tooltipWidth = block instanceof AbstractFurnaceBlock ? 47 : block instanceof HopperBlock ? 82 : 150;
+		int tooltipHeight = block instanceof AbstractFurnaceBlock || block instanceof HopperBlock || block instanceof DispenserBlock ? 13 : 47;
 
-		int realY = getSetting(0).asToggle().getChild(0).asMode().mode == 2 ? mouseY + 24 : mouseY;
-
-		if (block instanceof AbstractFurnaceBlock) {
-			renderTooltipBox(event.matrix, mouseX, realY - 21, 13, 47, true);
-		} else if (block instanceof HopperBlock) {
-			renderTooltipBox(event.matrix, mouseX, realY - 21, 13, 82, true);
-		} else if (block instanceof DispenserBlock) {
-			renderTooltipBox(event.matrix, mouseX, realY - 21, 13, 150, true);
-		} else {
-			renderTooltipBox(event.matrix, mouseX, realY - 55, 47, 150, true);
-		}
+		renderTooltipBox(matrices, mouseX, realY - tooltipHeight - 7, tooltipWidth, tooltipHeight, true);
 
 		int count = block instanceof HopperBlock || block instanceof DispenserBlock || block instanceof AbstractFurnaceBlock ? 18 : 0;
 
@@ -134,18 +143,26 @@ public class Peek extends Module {
 				break;
 			}
 
-			int x = mouseX + 10 + (17 * (count % 9));
-			int y = realY - 69 + (17 * (count / 9));
+			int x = mouseX + 11 + 17 * (count % 9);
+			int y = realY - 67 + 17 * (count / 9);
 
 			mc.getItemRenderer().zOffset = 400;
 			mc.getItemRenderer().renderGuiItemIcon(i, x, y);
-			mc.getItemRenderer().renderGuiItemOverlay(mc.textRenderer, i, x, y, i.getCount() > 1 ? i.getCount() + "" : "");
+			mc.getItemRenderer().renderGuiItemOverlay(mc.textRenderer, i, x, y, null);
 			mc.getItemRenderer().zOffset = 300;
 			count++;
 		}
+
+		if (mode == 1) {
+			return Either.right(Arrays.asList(slot.getStack().getName()));
+		} else if (mode == 2) {
+			return Either.left(true);
+		}
+
+		return null;
 	}
 
-	public void drawBookToolTip(MatrixStack matrix, Slot slot, int mouseX, int mouseY) {
+	public void drawBookToolTip(MatrixStack matrices, Slot slot, int mouseX, int mouseY) {
 		if (slot.getStack().getItem() != Items.WRITABLE_BOOK && slot.getStack().getItem() != Items.WRITTEN_BOOK)
 			return;
 
@@ -169,104 +186,115 @@ public class Peek extends Module {
 			shown = false;
 		}
 
-		String pageString = "Page: " + (pageCount + 1) + "/" + pages.size();
-		int length = mc.textRenderer.getWidth(pageString);
+		RenderSystem.setShader(GameRenderer::getPositionTexShader);
+		RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+		RenderSystem.setShaderTexture(0, BookScreen.BOOK_TEXTURE);
+		DrawableHelper.drawTexture(
+				matrices,
+				mouseX, mouseY - 143, 0,
+				0, 0,
+				134, 134,
+				179, 179);
 
-		renderTooltipBox(matrix, mouseX + 56 - length / 2, mouseY - pages.get(pageCount).size() * 10 - 19, 5, length, true);
-		renderTooltipBox(matrix, mouseX, mouseY - pages.get(pageCount).size() * 10 - 6, pages.get(pageCount).size() * 10 - 2, 120, true);
-		
-		mc.textRenderer.drawWithShadow(matrix, pageString, mouseX + 68 - length / 2, mouseY - pages.get(pageCount).size() * 10 - 32, -1);
+		Text pageIndexText = new TranslatableText("book.pageIndicator", new Object[] {pageCount + 1, pages.size() });
+		int pageIndexLength = mc.textRenderer.getWidth(pageIndexText);
+
+		matrices.push();
+		matrices.scale(0.7f, 0.7f, 1f);
+
+		mc.textRenderer.draw(
+				matrices,
+				pageIndexText,
+				(mouseX + 123 - pageIndexLength) * 1.43f,
+				(mouseY - 133) * 1.43f,
+				0x000000);
+
 
 		int count = 0;
 		for (String s : pages.get(pageCount)) {
-			mc.textRenderer.drawWithShadow(matrix, s, mouseX + 12, mouseY - 18 - pages.get(pageCount).size() * 10 + count * 10, 0x00c0c0);
+			mc.textRenderer.draw(
+					matrices,
+					s,
+					(mouseX + 24) * 1.43f,
+					(mouseY - 123 + count * 7) * 1.43f,
+					0x000000);
+
 			count++;
 		}
 
+		matrices.pop();
+
 	}
 
-	public void drawMapToolTip(MatrixStack matrix, Slot slot, int mouseX, int mouseY) {
+	public void drawMapToolTip(MatrixStack matrices, Slot slot, int mouseX, int mouseY) {
 		if (slot.getStack().getItem() != Items.FILLED_MAP) {
 			return;
 		}
 
-		MapState data = FilledMapItem.getOrCreateMapState(slot.getStack(), mc.world);
-		if (data == null || data.colors == null) {
+		Integer id = FilledMapItem.getMapId(slot.getStack());
+		MapState mapState = FilledMapItem.getMapState(id, mc.world);
+
+		if (mapState == null) {
 			return;
 		}
 
-		byte[] colors = data.colors;
+		float scale = getSetting(2).asToggle().getChild(0).asSlider().getValueFloat() / 1.25f;
 
-		float size = getSetting(2).asToggle().getChild(0).asSlider().getValueFloat();
+		matrices.push();
+		matrices.translate(mouseX + 14, mouseY - 18 - 135 * scale, 0);
+		matrices.scale(scale, scale, 0.0078125f);
 
-		matrix.push();
-		matrix.scale(size, size, 1.0f);
-		int x = (int) (mouseX * (1 / size) + 12 * (1 / size));
-		int y = (int) (mouseY * (1 / size) - 12 * (1 / size) - 140);
+		VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
+		VertexConsumer backgroundVertexer = immediate.getBuffer(MAP_BACKGROUND_CHECKERBOARD);
+		Matrix4f matrix4f = matrices.peek().getModel();
+		backgroundVertexer.vertex(matrix4f, -7f, 135f, -10f).color(255, 255, 255, 255).texture(0f, 1f).light(0xf000f0).next();
+		backgroundVertexer.vertex(matrix4f, 135f, 135f, -10f).color(255, 255, 255, 255).texture(1f, 1f).light(0xf000f0).next();
+		backgroundVertexer.vertex(matrix4f, 135f, -7f, -10f).color(255, 255, 255, 255).texture(1f, 0f).light(0xf000f0).next();
+		backgroundVertexer.vertex(matrix4f, -7f, -7f, -10f).color(255, 255, 255, 255).texture(0f, 0f).light(0xf000f0).next();
 
-		renderTooltipBox(matrix, x - 12, y + 12, 128, 128, false);
-		for (byte c : colors) {
-			int c1 = c & 255;
+		mc.gameRenderer.getMapRenderer().draw(matrices, immediate, id, mapState, false, 0xf000f0);
+		immediate.draw();
 
-			if (c1 / 4 != 0)
-				DrawableHelper.fill(matrix, x, y, x + 1, y + 1, getRenderColorFix(MapColor.COLORS[c1 / 4].color, c1 & 3));
-			if (x - (int) (mouseX * (1 / size) + 12 * (1 / size)) == 127) {
-				x = (int) (mouseX * (1 / size) + 12 * (1 / size));
-				y++;
-			} else {
-				x++;
-			}
-		}
+		matrices.pop();
 
-		matrix.pop();
 	}
 
-	/* Fix your game [B]ojang */
-	private int getRenderColorFix(int color, int offset) {
-		int int_2 = (offset == 3 ? 135 : offset == 2 ? 255 : offset == 0 ? 180 : 220);
-
-		int r = (color >> 16 & 255) * int_2 / 255;
-		int g = (color >> 8 & 255) * int_2 / 255;
-		int b = (color & 255) * int_2 / 255;
-		return -16777216 | r << 16 | g << 8 | b;
-	}
-
-	private void renderTooltipBox(MatrixStack matrix, int x1, int y1, int x2, int y2, boolean wrap) {
+	private void renderTooltipBox(MatrixStack matrices, int x1, int y1, int x2, int y2, boolean wrap) {
 		int xStart = x1 + 12;
 		int yStart = y1 - 12;
 		if (wrap) {
-			if (xStart + y2 > mc.currentScreen.width)
-				xStart -= 28 + y2;
-			if (yStart + x2 + 6 > mc.currentScreen.height)
-				yStart = mc.currentScreen.height - x2 - 6;
+			if (xStart + x2 > mc.currentScreen.width)
+				xStart -= 28 + x2;
+			if (yStart + y2 + 6 > mc.currentScreen.height)
+				yStart = mc.currentScreen.height - y2 - 6;
 		}
-		
+
 		Tessellator tessellator = Tessellator.getInstance();
 		BufferBuilder bufferBuilder = tessellator.getBuffer();
 		bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
 
-		Matrix4f matrix4f = matrix.peek().getModel();
-		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 4, xStart + y2 + 3, yStart - 3, -267386864, -267386864);
-		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart + x2 + 3, xStart + y2 + 3, yStart + x2 + 4, -267386864, -267386864);
-		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 3, xStart + y2 + 3, yStart + x2 + 3, -267386864, -267386864);
-		fillGradient(matrix4f, bufferBuilder, xStart - 4, yStart - 3, xStart - 3, yStart + x2 + 3, -267386864, -267386864);
-		fillGradient(matrix4f, bufferBuilder, xStart + y2 + 3, yStart - 3, xStart + y2 + 4, yStart + x2 + 3, -267386864, -267386864);
-		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 3 + 1, xStart - 3 + 1, yStart + x2 + 3 - 1, 1347420415, 1344798847);
-		fillGradient(matrix4f, bufferBuilder, xStart + y2 + 2, yStart - 3 + 1, xStart + y2 + 3, yStart + x2 + 3 - 1, 1347420415, 1344798847);
-		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 3, xStart + y2 + 3, yStart - 3 + 1, 1347420415, 1347420415);
-		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart + x2 + 2, xStart + y2 + 3, yStart + x2 + 3, 1344798847, 1344798847);
-		
+		Matrix4f matrix4f = matrices.peek().getModel();
+		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 4, xStart + x2 + 3, yStart - 3, -267386864, -267386864);
+		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart + y2 + 3, xStart + x2 + 3, yStart + y2 + 4, -267386864, -267386864);
+		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 3, xStart + x2 + 3, yStart + y2 + 3, -267386864, -267386864);
+		fillGradient(matrix4f, bufferBuilder, xStart - 4, yStart - 3, xStart - 3, yStart + y2 + 3, -267386864, -267386864);
+		fillGradient(matrix4f, bufferBuilder, xStart + x2 + 3, yStart - 3, xStart + x2 + 4, yStart + y2 + 3, -267386864, -267386864);
+		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 3 + 1, xStart - 3 + 1, yStart + y2 + 3 - 1, 1347420415, 1344798847);
+		fillGradient(matrix4f, bufferBuilder, xStart + x2 + 2, yStart - 3 + 1, xStart + x2 + 3, yStart + y2 + 3 - 1, 1347420415, 1344798847);
+		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart - 3, xStart + x2 + 3, yStart - 3 + 1, 1347420415, 1347420415);
+		fillGradient(matrix4f, bufferBuilder, xStart - 3, yStart + y2 + 2, xStart + x2 + 3, yStart + y2 + 3, 1344798847, 1344798847);
+
 		RenderSystem.disableTexture();
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
 		RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        bufferBuilder.end();
-        BufferRenderer.draw(bufferBuilder);
-        RenderSystem.disableBlend();
+		bufferBuilder.end();
+		BufferRenderer.draw(bufferBuilder);
+		RenderSystem.disableBlend();
 		RenderSystem.enableTexture();
 	}
 
-	private void fillGradient(Matrix4f matrix, BufferBuilder bufferBuilder, int xStart, int yStart, int xEnd, int yEnd, int colorStart, int colorEnd) {
+	private void fillGradient(Matrix4f matrices, BufferBuilder bufferBuilder, int xStart, int yStart, int xEnd, int yEnd, int colorStart, int colorEnd) {
 		float f = (float)(colorStart >> 24 & 255) / 255.0F;
 		float g = (float)(colorStart >> 16 & 255) / 255.0F;
 		float h = (float)(colorStart >> 8 & 255) / 255.0F;
@@ -275,9 +303,9 @@ public class Peek extends Module {
 		float k = (float)(colorEnd >> 16 & 255) / 255.0F;
 		float l = (float)(colorEnd >> 8 & 255) / 255.0F;
 		float m = (float)(colorEnd & 255) / 255.0F;
-		bufferBuilder.vertex(matrix, (float) xEnd, (float) yStart, 0f).color(g, h, i, f).next();
-		bufferBuilder.vertex(matrix, (float) xStart, (float) yStart, 0f).color(g, h, i, f).next();
-		bufferBuilder.vertex(matrix, (float) xStart, (float) yEnd, 0f).color(k, l, m, j).next();
-		bufferBuilder.vertex(matrix, (float) xEnd, (float) yEnd, 0f).color(k, l, m, j).next();
+		bufferBuilder.vertex(matrices, (float) xEnd, (float) yStart, 0f).color(g, h, i, f).next();
+		bufferBuilder.vertex(matrices, (float) xStart, (float) yStart, 0f).color(g, h, i, f).next();
+		bufferBuilder.vertex(matrices, (float) xStart, (float) yEnd, 0f).color(k, l, m, j).next();
+		bufferBuilder.vertex(matrices, (float) xEnd, (float) yEnd, 0f).color(k, l, m, j).next();
 	}
 }

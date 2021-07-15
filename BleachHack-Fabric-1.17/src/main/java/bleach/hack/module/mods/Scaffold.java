@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -22,11 +13,11 @@ import java.util.Set;
 import org.lwjgl.glfw.GLFW;
 
 import com.google.common.collect.Sets;
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingMode;
@@ -34,6 +25,7 @@ import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
 import bleach.hack.setting.other.SettingLists;
 import bleach.hack.setting.other.SettingRotate;
+import bleach.hack.util.InventoryUtils;
 import bleach.hack.util.render.RenderUtils;
 import bleach.hack.util.render.color.QuadColor;
 import bleach.hack.util.world.WorldUtils;
@@ -48,43 +40,46 @@ public class Scaffold extends Module {
 	private Set<BlockPos> renderBlocks = new LinkedHashSet<>();
 
 	public Scaffold() {
-		super("Scaffold", GLFW.GLFW_KEY_N, Category.WORLD, "Places blocks under you",
-				new SettingMode("Mode", "Normal", "3x3", "5x5", "7x7").withDesc("How big of an area to scaffold"),
-				new SettingSlider("BPT", 1, 10, 2, 0).withDesc("Blocks Per Tick, how many blocks to place per tick"),
-				new SettingSlider("Range", 0, 1, 0.3, 1).withDesc("How far to place ahead of you in Normal mode"),
-				new SettingRotate(false).withDesc("Rotates when placing blocks"),
-				new SettingToggle("Legit Place", false).withDesc("Only places on sides you can see"),
-				new SettingToggle("Filter", false).withDesc("Filters certain blocks").withChildren(
-						new SettingMode("Mode", "Blacklist", "Whitelist").withDesc("How to handle the list"),
-						SettingLists.newItemList("Edit Blocks", "Edit Filtered Blocks", i -> i instanceof BlockItem).withDesc("Edit the filtered blocks")),
-				new SettingToggle("Tower", true).withDesc("Makes scaffolding straight up much easier").withChildren(
-						new SettingToggle("Legit", false).withDesc("Slower mode that bypasses some anticheats")),
-				new SettingToggle("AirPlace", false).withDesc("Places blocks in the air without support blocks"),
-				new SettingToggle("SafeWalk", true).withDesc("Prevents you from walking of edges when scaffold is on"),
-				new SettingToggle("NoSwing", false).withDesc("Doesn't swing your hand clientside"),
-				new SettingToggle("EmptyToggle", false).withDesc("Turns off when you run out of blocks"),
-				new SettingToggle("Highlight", false).withDesc("Highlights the blocks you are placing").withChildren(
-						new SettingColor("Color", 1f, 0.75f, 0.2f, false).withDesc("Color for the block highlight"),
-						new SettingToggle("Placed", false).withDesc("Highlights blocks that are already placed")));
+		super("Scaffold", GLFW.GLFW_KEY_N, ModuleCategory.WORLD, "Places blocks under you",
+				new SettingMode("Area", "Normal", "3x3", "5x5", "7x7").withDesc("How big of an area to scaffold."),
+				new SettingSlider("BPT", 1, 10, 2, 0).withDesc("Blocks Per Tick, how many blocks to place per tick."),
+				new SettingSlider("Range", 0, 1, 0.3, 1).withDesc("How far to place ahead of you in Normal mode."),
+				new SettingRotate(false).withDesc("Rotates when placing blocks."),
+				new SettingToggle("LegitPlace", false).withDesc("Only places on sides you can see."),
+				new SettingToggle("Filter", false).withDesc("Filters certain blocks.").withChildren(
+						new SettingMode("Mode", "Blacklist", "Whitelist").withDesc("How to handle the list."),
+						SettingLists.newItemList("Edit Blocks", "Edit Filtered Blocks", i -> i instanceof BlockItem).withDesc("Edit the filtered blocks.")),
+				new SettingToggle("Tower", true).withDesc("Makes scaffolding straight up much easier.").withChildren(
+						new SettingToggle("Legit", false).withDesc("Slower mode that bypasses some anticheats.")),
+				new SettingToggle("AirPlace", false).withDesc("Places blocks in the air without support blocks."),
+				new SettingToggle("SafeWalk", true).withDesc("Prevents you from walking of edges when scaffold is on."),
+				new SettingToggle("NoSwing", false).withDesc("Doesn't swing your hand clientside."),
+				new SettingToggle("EmptyToggle", false).withDesc("Turns off when you run out of blocks."),
+				new SettingToggle("Highlight", false).withDesc("Highlights the blocks you are placing.").withChildren(
+						new SettingColor("Color", 1f, 0.75f, 0.2f, false).withDesc("Color for the block highlight."),
+						new SettingToggle("Placed", false).withDesc("Highlights blocks that are already placed.")));
 	}
 
-	@Subscribe
+	private boolean shouldUseItem(Item item) {
+		if (!(item instanceof BlockItem)) {
+			return false;
+		}
+
+		if (getSetting(5).asToggle().state) {
+			boolean contains = getSetting(5).asToggle().getChild(1).asList(Item.class).contains(item);
+
+			return (getSetting(5).asToggle().getChild(0).asMode().mode == 0 && !contains)
+					|| (getSetting(5).asToggle().getChild(0).asMode().mode == 1 && contains);
+		}
+
+		return true;
+	}
+
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		renderBlocks.clear();
 
-		int slot = -1;
-		int prevSlot = mc.player.getInventory().selectedSlot;
-
-		if (mc.player.getInventory().getMainHandStack().getItem() instanceof BlockItem) {
-			slot = mc.player.getInventory().selectedSlot;
-		} else {
-			for (int i = 0; i < 9; i++) {
-				if (mc.player.getInventory().getStack(i).getItem() instanceof BlockItem) {
-					slot = i;
-					break;
-				}
-			}
-		}
+		int slot = InventoryUtils.getSlot(false, i -> shouldUseItem(mc.player.getInventory().getStack(i).getItem()));
 
 		if (slot == -1) {
 			if (getSetting(10).asToggle().state) {
@@ -92,19 +87,6 @@ public class Scaffold extends Module {
 			}
 
 			return;
-		}
-
-		if (getSetting(5).asToggle().state) {
-			boolean contains = getSetting(5).asToggle().getChild(1).asList(Item.class).contains(mc.player.getInventory().getStack(slot).getItem());
-
-			if ((getSetting(5).asToggle().getChild(0).asMode().mode == 0 && contains)
-					|| (getSetting(5).asToggle().getChild(0).asMode().mode == 1 && !contains)) {
-				if (getSetting(10).asToggle().state) {
-					setEnabled(false);
-				}
-
-				return;
-			}
 		}
 
 		double range = getSetting(2).asSlider().getValue();
@@ -118,7 +100,7 @@ public class Scaffold extends Module {
 						new BlockPos(placeVec.add(-range, 0, 0)),
 						new BlockPos(placeVec.add(0, 0, range)),
 						new BlockPos(placeVec.add(0, 0, -range)))
-				: getSpiral(mode, new BlockPos(placeVec));
+						: getSpiral(mode, new BlockPos(placeVec));
 
 		if (getSetting(6).asToggle().state
 				&& InputUtil.isKeyPressed(mc.getWindow().getHandle(), InputUtil.fromTranslationKey(mc.options.keyJump.getBoundKeyTranslationKey()).getCode())) {
@@ -153,15 +135,14 @@ public class Scaffold extends Module {
 
 		int cap = 0;
 		for (BlockPos bp : blocks) {
-			boolean placed = WorldUtils.placeBlock(bp, slot, getSetting(3).asRotate(), getSetting(4).asToggle().state, !getSetting(9).asToggle().state);
-			
-			if (!placed && getSetting(7).asToggle().state) {
-				placed = WorldUtils.airPlaceBlock(bp, slot, getSetting(3).asRotate(), getSetting(4).asToggle().state, !getSetting(9).asToggle().state);
-			}
+			boolean placed = WorldUtils.placeBlock(
+					bp, slot,
+					getSetting(3).asRotate(),
+					getSetting(4).asToggle().state,
+					getSetting(7).asToggle().state,
+					!getSetting(9).asToggle().state);
 
 			if (placed) {
-				mc.player.getInventory().selectedSlot = prevSlot;
-
 				cap++;
 
 				if (cap >= getSetting(1).asSlider().getValueInt()) {
@@ -171,7 +152,7 @@ public class Scaffold extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onWorldRender(EventWorldRender.Post event) {
 		if (getSetting(11).asToggle().state) {
 			float[] col = getSetting(11).asToggle().getChild(0).asColor().getRGBFloat();

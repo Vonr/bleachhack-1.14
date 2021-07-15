@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.command.commands;
 
 import java.util.Locale;
@@ -7,8 +15,9 @@ import org.apache.commons.lang3.StringUtils;
 import bleach.hack.BleachHack;
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
+import bleach.hack.command.exception.CmdSyntaxException;
 import bleach.hack.util.BleachLogger;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.LiteralText;
@@ -23,18 +32,20 @@ public class CmdFriends extends Command {
 
 	@Override
 	public void onCommand(String alias, String[] args) throws Exception {
+		if (args.length == 0 || args.length > 2) {
+			throw new CmdSyntaxException();
+		}
+
 		if (args[0].equalsIgnoreCase("add")) {
 			if (args.length < 2) {
-				printSyntaxError("No username selected");
-				return;
+				throw new CmdSyntaxException("No username selected");
 			}
 
 			BleachHack.friendMang.add(args[1]);
 			BleachLogger.infoMessage("Added \"" + args[1] + "\" to the friend list");
 		} else if (args[0].equalsIgnoreCase("remove")) {
 			if (args.length < 2) {
-				printSyntaxError("No username selected");
-				return;
+				throw new CmdSyntaxException("No username selected");
 			}
 
 			BleachHack.friendMang.remove(args[1].toLowerCase(Locale.ENGLISH));
@@ -73,8 +84,7 @@ public class CmdFriends extends Command {
 
 			BleachLogger.infoMessage("Cleared Friend list");
 		} else {
-			printSyntaxError();
-			return;
+			throw new CmdSyntaxException();
 		}
 
 		BleachFileHelper.SCHEDULE_SAVE_FRIENDS = true;

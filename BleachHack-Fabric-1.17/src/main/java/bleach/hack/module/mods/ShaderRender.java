@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -22,11 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 import com.google.gson.JsonSyntaxException;
 
 import bleach.hack.event.events.EventRenderShader;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import net.minecraft.client.gl.ShaderEffect;
@@ -42,10 +33,10 @@ public class ShaderRender extends Module {
 	private List<Identifier> shaders = new ArrayList<>();
 
 	public ShaderRender() {
-		super("ShaderRender", KEY_UNBOUND, Category.RENDER, "1.7 Super secret settings",
+		super("ShaderRender", KEY_UNBOUND, ModuleCategory.RENDER, "1.7 Super secret settings.",
 				new SettingMode("Shader", "Notch", "FXAA", "Art", "Bumpy", "Blobs", "Blobs2", "Pencil", "Vibrant",
 						"Deconverge", "Flip", "Invert", "NTSC", "Outline", "Phosphor", "Scanline", "Sobel",
-						"Bits", "Desaturate", "Green", "Blur", "Wobble", "Antialias", "Creeper", "Spider").withDesc("Shader mode"));
+						"Bits", "Desaturate", "Green", "Blur", "Wobble", "Antialias", "Creeper", "Spider").withDesc("Shader to use."));
 		
 		for (String s: getSetting(0).asMode().modes) {
 			if (s.equals("Vibrant")) {
@@ -58,7 +49,7 @@ public class ShaderRender extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onWorldRender(EventRenderShader event) {
 		if (lastShader == null || lastWidth != mc.getWindow().getFramebufferWidth() || lastHeight != mc.getWindow().getFramebufferHeight()
 				|| !shaders.get(getSetting(0).asMode().mode).equals(lastId)) {

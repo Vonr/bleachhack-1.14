@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.setting.base;
 
@@ -28,15 +19,16 @@ import com.google.gson.JsonElement;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import bleach.hack.gui.clickgui.window.ModuleWindow;
-import bleach.hack.gui.widget.BleachScrollbar;
 import bleach.hack.gui.window.Window;
-import bleach.hack.gui.window.WindowButton;
 import bleach.hack.gui.window.WindowScreen;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.gui.window.widget.WindowButtonWidget;
+import bleach.hack.gui.window.widget.WindowScrollbarWidget;
+import bleach.hack.gui.window.widget.WindowTextFieldWidget;
+import bleach.hack.util.BleachLogger;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
@@ -58,27 +50,28 @@ public abstract class SettingList<E> extends SettingBase {
 	public SettingList(String text, String windowText, Collection<E> itemPool, E... defaultItems) {
 		this.text = text;
 		this.windowText = windowText;
-		this.itemPool.addAll(itemPool);
 
 		Collections.addAll(this.defaultItems, defaultItems);
-		items.addAll(this.defaultItems);
+		this.itemPool.addAll(itemPool);
+		this.itemPool.removeAll(this.defaultItems);
+		this.items.addAll(this.defaultItems);
 	}
 
 	public String getName() {
 		return windowText;
 	}
 
-	public void render(ModuleWindow window, MatrixStack matrix, int x, int y, int len) {
+	public void render(ModuleWindow window, MatrixStack matrices, int x, int y, int len) {
 		if (window.mouseOver(x, y, x + len, y + 12)) {
-			DrawableHelper.fill(matrix, x + 1, y, x + len, y + 12, 0x70303070);
+			DrawableHelper.fill(matrices, x + 1, y, x + len, y + 12, 0x70303070);
 		}
 
-		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrix, text, x + 3, y + 2, 0xcfe0cf);
+		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices, text, x + 3, y + 2, 0xcfe0cf);
 
-		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrix, "...", x + len - 7, y + 2, 0xcfd0cf);
+		MinecraftClient.getInstance().textRenderer.drawWithShadow(matrices, "...", x + len - 7, y + 2, 0xcfd0cf);
 
 		if (window.mouseOver(x, y, x + len, y + 12) && window.lmDown) {
-			window.onMouseReleased(window.mouseX, window.mouseY);
+			window.mouseReleased(window.mouseX, window.mouseY, 1);
 			MinecraftClient.getInstance().currentScreen.mouseReleased(window.mouseX, window.mouseY, 0);
 			MinecraftClient.getInstance().getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F, 0.3F));
 			MinecraftClient.getInstance().openScreen(new ListWidowScreen(MinecraftClient.getInstance().currentScreen));
@@ -93,17 +86,17 @@ public abstract class SettingList<E> extends SettingBase {
 		return items;
 	}
 
-	public void renderItem(MinecraftClient mc, MatrixStack matrix, E item, int x, int y, int w, int h) {
-		matrix.push();
+	public void renderItem(MinecraftClient mc, MatrixStack matrices, E item, int x, int y, int w, int h) {
+		matrices.push();
 
 		float scale = (h - 2) / 10f;
 		float offset = 1f / scale;
 
-		matrix.scale(scale, scale, 1f);
+		matrices.scale(scale, scale, 1f);
 
-		mc.textRenderer.drawWithShadow(matrix, "?", (x + 5) * offset, (y + 4) * offset, -1);
+		mc.textRenderer.drawWithShadow(matrices, "?", (x + 5) * offset, (y + 4) * offset, -1);
 
-		matrix.pop();
+		matrices.pop();
 	}
 
 	public abstract E getItemFromString(String string);
@@ -130,7 +123,7 @@ public abstract class SettingList<E> extends SettingBase {
 					itemPool.remove(item);
 					items.add(item);
 				} else {
-					System.out.println("Error Importing item: " + je.toString());
+					BleachLogger.logger.error("Error Importing item: " + je.toString());
 				}
 			}
 		}
@@ -154,8 +147,8 @@ public abstract class SettingList<E> extends SettingBase {
 	private class ListWidowScreen extends WindowScreen {
 
 		private Screen parent;
-		private TextFieldWidget inputField;
-		private BleachScrollbar scrollbar;
+		private WindowTextFieldWidget inputField;
+		private WindowScrollbarWidget scrollbar;
 
 		private E toDeleteItem;
 		private E toAddItem;
@@ -169,14 +162,18 @@ public abstract class SettingList<E> extends SettingBase {
 			super.init();
 
 			clearWindows();
-			int x1 = (int) (width / 3.25);
-			int y1 = height / 12;
-			int x2 = (int) (width - width / 3.25);
-			int y2 = height - height / 12;
 
-			addWindow(new Window(x1, y1, x2, y2, windowText, new ItemStack(Items.OAK_SIGN)));
+			addWindow(new Window(
+					(int) (width / 3.25),
+					height / 12,
+					(int) (width - width / 3.25),
+					height - height / 12,
+					windowText, new ItemStack(Items.OAK_SIGN)));
 
-			getWindow(0).buttons.add(new WindowButton((x2 - x1) - 50, y2 - y1 - 22, (x2 - x1) - 5, y2 - y1 - 5, "Reset", () -> {
+			int x2 = getWindow(0).x2 - getWindow(0).x1;
+			int y2 = getWindow(0).y2 - getWindow(0).y1;
+
+			getWindow(0).addWidget(new WindowButtonWidget(x2 - 50, y2 - 22, x2 - 5, y2 - 5, "Reset", () -> {
 				itemPool.addAll(items);
 				items.clear();
 				items.addAll(defaultItems);
@@ -184,33 +181,31 @@ public abstract class SettingList<E> extends SettingBase {
 				BleachFileHelper.SCHEDULE_SAVE_MODULES = true;
 			}));
 
-			getWindow(0).buttons.add(new WindowButton((x2 - x1) - 100, y2 - y1 - 22, (x2 - x1) - 55, y2 - y1 - 5, "Clear", () -> {
+			getWindow(0).addWidget(new WindowButtonWidget(x2 - 100, y2 - 22, x2 - 55, y2 - 5, "Clear", () -> {
 				itemPool.addAll(items);
 				items.clear();
 				BleachFileHelper.SCHEDULE_SAVE_MODULES = true;
 			}));
 
-			getWindow(0).buttons.add(new WindowButton((x2 - x1) - 150, y2 - y1 - 22, (x2 - x1) - 105, y2 - y1 - 5, "Add All", () -> {
+			getWindow(0).addWidget(new WindowButtonWidget(x2 - 150, y2 - 22, x2 - 105, y2 - 5, "Add All", () -> {
 				items.addAll(itemPool);
 				itemPool.clear();
 				BleachFileHelper.SCHEDULE_SAVE_MODULES = true;
 			}));
 
-			if (inputField == null) {
-				inputField = new TextFieldWidget(textRenderer, 0, 0, 0, 17, LiteralText.EMPTY);
-				inputField.setMaxLength(32767);
-			}
+			inputField = getWindow(0).addWidget(new WindowTextFieldWidget(5, y2 - 22, x2 / 3, 17, inputField != null ? inputField.textField.getText() : ""));
+			inputField.textField.setMaxLength(32767);
 
-			scrollbar = new BleachScrollbar(0, 0, 0, y2 - y1 - 39, scrollbar == null ? 0 : scrollbar.getPageOffset());
+			scrollbar = getWindow(0).addWidget(new WindowScrollbarWidget(x2 - 11, 12, 0, y2 - 39, scrollbar == null ? 0 : scrollbar.getPageOffset()));
 		}
 
-		public void render(MatrixStack matrix, int mouseX, int mouseY, float delta) {
-			renderBackground(matrix);
-			super.render(matrix, mouseX, mouseY, delta);
+		public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+			renderBackground(matrices);
+			super.render(matrices, mouseX, mouseY, delta);
 		}
 
-		public void onRenderWindow(MatrixStack matrix, int window, int mouseX, int mouseY) {
-			super.onRenderWindow(matrix, window, mouseX, mouseY);
+		public void onRenderWindow(MatrixStack matrices, int window, int mouseX, int mouseY) {
+			super.onRenderWindow(matrices, window, mouseX, mouseY);
 
 			toAddItem = null;
 			toDeleteItem = null;
@@ -225,92 +220,77 @@ public abstract class SettingList<E> extends SettingBase {
 				int renderEntries = 0;
 				int entries = 0;
 
+				scrollbar.setTotalHeight(items.size() * 21);
 				int offset = scrollbar.getPageOffset();
 
 				for (E e: items) {
 					if (entries >= offset / 21 && renderEntries < maxEntries) {
-						drawEntry(matrix, e, x1 + 6, y1 + 15 + entries * 21 - offset, x2 - x1 - 19, 20, mouseX, mouseY);
+						drawEntry(matrices, e, x1 + 6, y1 + 15 + entries * 21 - offset, x2 - x1 - 19, 20, mouseX, mouseY);
 						renderEntries++;
 					}
 
 					entries++;
 				}
 
-				Window.horizontalGradient(matrix, x1 + 1, y2 - 25, x2 - 1, y2 - 1, 0x70606090, 0x00606090);
-				DrawableHelper.fill(matrix, x1 + 1, y2 - 27, x2 - 1, y2 - 25, 0xa0606090);
+				//Window.horizontalGradient(matrix, x1 + 1, y2 - 25, x2 - 1, y2 - 1, 0x70606090, 0x00606090);
+				Window.horizontalGradient(matrices, x1 + 1, y2 - 27, x2 - 1, y2 - 26, 0xff606090, 0x50606090);
 
-				if (inputField.isFocused() && !inputField.getText().isEmpty()) {
+				if (inputField.textField.isFocused()) {
 					Set<E> toDraw = new LinkedHashSet<>();
 
 					for (E e: itemPool) {
 						if (toDraw.size() >= 10) break;
 
-						if (getStringFromItem(e).toLowerCase(Locale.ENGLISH).contains(inputField.getText().toLowerCase(Locale.ENGLISH))) {
+						if (getStringFromItem(e).toLowerCase(Locale.ENGLISH).contains(inputField.textField.getText().toLowerCase(Locale.ENGLISH))) {
 							toDraw.add(e);
 						}
 					}
 
-					int curY = inputField.y - 4 - toDraw.size() * 17;
+					int curY = y1 + inputField.y1 - 4 - toDraw.size() * 17;
 					int longest = toDraw.stream().map(e -> textRenderer.getWidth(getStringFromItem(e))).sorted(Comparator.reverseOrder()).findFirst().orElse(0);
 
 					RenderSystem.pushMatrix();
-					RenderSystem.translatef(0f, 0f, 150f);
+					RenderSystem.translatef(0, 0, 150);
 
-					matrix.push();
-					matrix.translate(0f, 0f, 150f);
+					matrices.push();
+					matrices.translate(0, 0, 150);
 
 					for (E e: toDraw) {
-						drawSearchEntry(matrix, e, inputField.x, curY, longest + 23, 16, mouseX, mouseY);
+						drawSearchEntry(matrices, e, x1 + inputField.x1, curY, longest + 23, 16, mouseX, mouseY);
 						curY += 17;
 					}
 
-					matrix.pop();
-
+					matrices.pop();
 					RenderSystem.popMatrix();
 				}
-				
-				matrix.push();
-				matrix.translate(0f, 0f, 250f);
-				
-				inputField.x = x1 + 5;
-				inputField.y = y2 - 22;
-				inputField.setWidth((x2 - x1) / 3);
-				inputField.render(matrix, mouseX, mouseY, client.getTickDelta());
-
-				scrollbar.x = x2 - 11;
-				scrollbar.y = y1 + 12;
-				scrollbar.setTotalHeight(entries * 21);
-				scrollbar.render(matrix, mouseX, mouseY, client.getTickDelta());
-
-				matrix.pop();
 			}
 		}
 
-		private void drawEntry(MatrixStack matrix, E item, int x, int y, int width, int height, int mouseX, int mouseY) {
+		private void drawEntry(MatrixStack matrices, E item, int x, int y, int width, int height, int mouseX, int mouseY) {
 			boolean mouseOverDelete = mouseX >= x + width - 14 && mouseX <= x + width - 1 && mouseY >= y + 2 && mouseY <= y + height - 2;
-			Window.fill(matrix, x + width - 14, y + 2, x + width - 1, y + height - 2, mouseOverDelete ? 0x4fb070f0 : 0x60606090);
+			Window.fill(matrices, x + width - 14, y + 2, x + width - 1, y + height - 2, mouseOverDelete ? 0x4fb070f0 : 0x60606090);
 
 			if (mouseOverDelete) {
 				toDeleteItem = item;
 			}
 
-			renderItem(client, matrix, item, x, y, height, height);
+			renderItem(client, matrices, item, x, y, height, height);
 
-			drawStringWithShadow(matrix, textRenderer, getStringFromItem(item), x + height + 4, y + 4, -1);
-			drawStringWithShadow(matrix, textRenderer, "\u00a7cx", x + width - 10, y + 5, -1);
+			drawStringWithShadow(matrices, textRenderer, getStringFromItem(item), x + height + 4, y + 4, -1);
+			drawStringWithShadow(matrices, textRenderer, "\u00a7cx", x + width - 10, y + 5, -1);
 		}
 
-		private void drawSearchEntry(MatrixStack matrix, E item, int x, int y, int width, int height, int mouseX, int mouseY) {
+		private void drawSearchEntry(MatrixStack matrices, E item, int x, int y, int width, int height, int mouseX, int mouseY) {
 			boolean mouseOver = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height;
-			DrawableHelper.fill(matrix, x, y - 1, x + width, y + height, mouseOver ? 0xdf8070d0 : 0xb0606090);
+			DrawableHelper.fill(matrices, x, y - 1, x + width, y + height, mouseOver ? 0xdf8070d0 : 0xb0606090);
 
 			if (mouseOver) {
 				toAddItem = item;
 			}
 
-			renderItem(client, matrix, item, x, y, height, height);
+			renderItem(client, matrices, item, x, y, height, height);
 
-			drawStringWithShadow(matrix, textRenderer, getStringFromItem(item), x + height + 4, y + 4, -1);
+			drawStringWithShadow(matrices, textRenderer, getStringFromItem(item), x + height + 4, y + 4, -1);
 		}
 
 		public void onClose() {
@@ -323,15 +303,13 @@ public abstract class SettingList<E> extends SettingBase {
 		}
 
 		public boolean mouseClicked(double mouseX, double mouseY, int button) {
-			inputField.mouseClicked(mouseX, mouseY, button);
-			scrollbar.mouseClicked(mouseX, mouseY, button);
-
 			if (toAddItem != null) {
 				items.add(toAddItem);
 				itemPool.remove(toAddItem);
-				inputField.setTextFieldFocused(true);
+				inputField.textField.setTextFieldFocused(true);
 				client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F, 0.3F));
 				BleachFileHelper.SCHEDULE_SAVE_MODULES = true;
+				return false;
 			} else if (toDeleteItem != null) {
 				itemPool.add(toDeleteItem);
 				items.remove(toDeleteItem);
@@ -342,36 +320,12 @@ public abstract class SettingList<E> extends SettingBase {
 			return super.mouseClicked(mouseX, mouseY, button);
 		}
 
-		public boolean mouseReleased(double mouseX, double mouseY, int button) {
-			scrollbar.mouseReleased(mouseX, mouseY, button);
-
-			return super.mouseReleased(mouseX, mouseY, button);
-		}
-
 		public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-			if (!inputField.isFocused() || inputField.getText().isEmpty()) {
-				scrollbar.mouseScrolled(mouseX, mouseY, amount);
+			if (!inputField.textField.isFocused() || inputField.textField.getText().isEmpty()) {
+				scrollbar.scroll(amount);
 			}
 
 			return super.mouseScrolled(mouseX, mouseY, amount);
-		}
-
-		public void tick() {
-			super.tick();
-
-			inputField.tick();
-		}
-
-		public boolean charTyped(char chr, int modifiers) {
-			if (inputField.isFocused()) inputField.charTyped(chr, modifiers);
-
-			return super.charTyped(chr, modifiers);
-		}
-
-		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-			if (inputField.isFocused()) inputField.keyPressed(keyCode, scanCode, modifiers);
-
-			return super.keyPressed(keyCode, scanCode, modifiers);
 		}
 	}
 }

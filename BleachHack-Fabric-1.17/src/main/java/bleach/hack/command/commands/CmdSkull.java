@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
 
@@ -28,6 +19,7 @@ import com.google.gson.JsonParser;
 
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
+import bleach.hack.command.exception.CmdSyntaxException;
 import bleach.hack.util.BleachLogger;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -37,14 +29,14 @@ import net.minecraft.nbt.StringNbtReader;
 public class CmdSkull extends Command {
 
 	public CmdSkull() {
-		super("skull", "Gives you a player skull.", "skull <player> | skull img <image url>", CommandCategory.CREATIVE);
+		super("skull", "Gives you a player skull.", "skull <player> | skull img <image url>", CommandCategory.CREATIVE,
+				"playerhead", "head");
 	}
 
 	@Override
 	public void onCommand(String alias, String[] args) throws Exception {
 		if (args.length == 0) {
-			printSyntaxError();
-			return;
+			throw new CmdSyntaxException();
 		}
 
 		ItemStack item = new ItemStack(Items.PLAYER_HEAD, 64);
@@ -62,7 +54,7 @@ public class CmdSkull extends Command {
 						Resources.toString(new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + json.get("id").getAsString()), StandardCharsets.UTF_8))
 						.getAsJsonObject();
 
-				item.setTag(StringNbtReader.parse("{SkullOwner:{Id:" + id + ",Properties:{textures:[{Value:\""
+				item.setNbt(StringNbtReader.parse("{SkullOwner:{Id:" + id + ",Properties:{textures:[{Value:\""
 						+ json2.get("properties").getAsJsonArray().get(0).getAsJsonObject().get("value").getAsString()
 						+ "\"}]}}}"));
 			} catch (Exception e) {
@@ -72,8 +64,8 @@ public class CmdSkull extends Command {
 		} else if (args[0].equalsIgnoreCase("img")) {
 			NbtCompound tag = StringNbtReader.parse(
 					"{SkullOwner:{Id:" + id + ",Properties:{textures:[{Value:\"" + encodeUrl(args[1]) + "\"}]}}}");
-			item.setTag(tag);
-			System.out.println(tag);
+			item.setNbt(tag);
+			BleachLogger.logger.info(tag);
 		}
 
 		mc.player.getInventory().addPickBlock(item);

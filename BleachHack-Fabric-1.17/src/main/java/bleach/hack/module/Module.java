@@ -1,56 +1,45 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.google.common.eventbus.Subscribe;
-
 import bleach.hack.BleachHack;
 import bleach.hack.setting.base.SettingBase;
 import bleach.hack.setting.base.SettingBind;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.MinecraftClient;
 
 public class Module {
 
-	public final static int KEY_UNBOUND = -2;
+	public static final int KEY_UNBOUND = -1481058891;
 
 	protected final MinecraftClient mc = MinecraftClient.getInstance();
 	private String name;
 	private int key;
 	private int defaultKey;
 	
-	private boolean enabled = false;
+	private boolean enabled;
 	private final boolean defaultEnabled;
+	private boolean subscribed;
 	
-	private Category category;
+	private ModuleCategory category;
 	private String desc;
 	private List<SettingBase> settings = new ArrayList<>();
 
-	public Module(String nm, int k, Category c, String d, SettingBase... s) {
+	public Module(String nm, int k, ModuleCategory c, String d, SettingBase... s) {
 		this(nm, k, c, false, d, s);
 	}
 
-	public Module(String nm, int k, Category c, boolean enabled, String d, SettingBase... s) {
+	public Module(String nm, int k, ModuleCategory c, boolean enabled, String d, SettingBase... s) {
 		name = nm;
 		setKey(k);
 		defaultKey = getKey();
@@ -78,26 +67,14 @@ public class Module {
 	public void onEnable() {
 		BleachFileHelper.SCHEDULE_SAVE_MODULES = true;
 
-		for (Method method : getClass().getMethods()) {
-			if (method.isAnnotationPresent(Subscribe.class)) {
-				BleachHack.eventBus.register(this);
-				break;
-			}
-		}
+		subscribed = BleachHack.eventBus.subscribe(this);
 	}
 
 	public void onDisable() {
 		BleachFileHelper.SCHEDULE_SAVE_MODULES = true;
 
-		try {
-			for (Method method : getClass().getMethods()) {
-				if (method.isAnnotationPresent(Subscribe.class)) {
-					BleachHack.eventBus.unregister(this);
-					break;
-				}
-			}
-		} catch (Exception this_didnt_get_registered_hmm_weird) {
-			this_didnt_get_registered_hmm_weird.printStackTrace();
+		if (subscribed) {
+			BleachHack.eventBus.unsubscribe(this);
 		}
 	}
 
@@ -105,7 +82,7 @@ public class Module {
 		return name;
 	}
 
-	public Category getCategory() {
+	public ModuleCategory getCategory() {
 		return category;
 	}
 

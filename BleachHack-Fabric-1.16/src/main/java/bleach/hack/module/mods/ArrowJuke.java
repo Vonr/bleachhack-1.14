@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -22,10 +13,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -40,14 +31,14 @@ import net.minecraft.util.math.Vec3d;
 public class ArrowJuke extends Module {
 
 	public ArrowJuke() {
-		super("ArrowJuke", KEY_UNBOUND, Category.COMBAT, "Tries to dodge arrows coming at you",
+		super("ArrowJuke", KEY_UNBOUND, ModuleCategory.COMBAT, "Tries to dodge arrows coming at you",
 				new SettingMode("Move", "Client", "Packet").withDesc("How to move to avoid the arrow"),
 				new SettingSlider("Speed", 0.01, 2, 1, 2).withDesc("Move speed"),
 				new SettingSlider("Lookahead", 1, 500, 250, 0).withDesc("How many steps in the future to look ahead"),
 				new SettingToggle("Up", false).withDesc("Allows you to move up when dodging the arrow"));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick envent) {
 		for (Entity e : mc.world.getEntities()) {
 			if (e.age > 75 || !(e instanceof ArrowEntity) || ((ArrowEntity) e).getOwner() == mc.player)
@@ -67,7 +58,7 @@ public class ArrowJuke extends Module {
 				currentVel = currentVel.multiply(0.99, 0.94, 0.99);
 				futureBoxes.add(currentBox);
 
-				if (!mc.world.getOtherEntities(null, currentBox).isEmpty() || !WorldUtils.isBoxEmpty(currentBox)) {
+				if (!mc.world.getOtherEntities(null, currentBox).isEmpty() || WorldUtils.doesBoxCollide(currentBox)) {
 					break;
 				}
 			}
@@ -77,7 +68,7 @@ public class ArrowJuke extends Module {
 					for (Vec3d vel : getMoveVecs(e.getVelocity())) {
 						Box newBox = mc.player.getBoundingBox().offset(vel);
 
-						if (WorldUtils.isBoxEmpty(newBox) && futureBoxes.stream().noneMatch(playerBox.offset(vel)::intersects)) {
+						if (!WorldUtils.doesBoxCollide(newBox) && futureBoxes.stream().noneMatch(playerBox.offset(vel)::intersects)) {
 							if (mode == 0 && vel.y == 0) {
 								mc.player.setVelocity(vel);
 							} else {

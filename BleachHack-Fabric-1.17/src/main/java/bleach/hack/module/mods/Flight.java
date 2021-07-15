@@ -1,29 +1,20 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventSendPacket;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -38,24 +29,20 @@ public class Flight extends Module {
 	private boolean flyTick = false;
 
 	public Flight() {
-		super("Flight", GLFW.GLFW_KEY_G, Category.MOVEMENT, "Allows you to fly",
-				new SettingMode("Mode", "Static", "Jetpack", "ec.me").withDesc("Flight mode"),
-				new SettingSlider("Speed", 0, 5, 1, 1).withDesc("Flight speed"),
-				new SettingMode("AntiKick", "Off", "Fall", "Bob", "Packet").withDesc("How to bypass \"you have been kicked for flying\" kicks"));
+		super("Flight", GLFW.GLFW_KEY_G, ModuleCategory.MOVEMENT, "Allows you to fly.",
+				new SettingMode("Mode", "Static", "Jetpack", "ec.me").withDesc("Flight mode."),
+				new SettingSlider("Speed", 0, 5, 1, 1).withDesc("Flight speed."),
+				new SettingMode("AntiKick", "Off", "Fall", "Bob", "Packet").withDesc("How to bypass \"you have been kicked for flying\" kicks."));
 	}
 
 	@Override
 	public void onDisable() {
-		if (!mc.player.isCreative() && !mc.player.isSpectator()) {
-			mc.player.getAbilities().allowFlying = false;
-		}
-
 		mc.player.getAbilities().flying = false;
 		
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		float speed = getSetting(1).asSlider().getValueFloat();
 
@@ -85,7 +72,7 @@ public class Flight extends Module {
 
 			mc.player.setVelocity(antiKickVel);
 
-			Vec3d forward = new Vec3d(0, 0, speed).rotateY(-(float) Math.toRadians(mc.player.yaw));
+			Vec3d forward = new Vec3d(0, 0, speed).rotateY(-(float) Math.toRadians(mc.player.getYaw()));
 			Vec3d strafe = forward.rotateY((float) Math.toRadians(90));
 
 			if (mc.options.keyJump.isPressed())
@@ -116,13 +103,13 @@ public class Flight extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onSendPacket(EventSendPacket event) {
 		if (getSetting(0).asMode().mode == 2 && event.getPacket() instanceof PlayerMoveC2SPacket) {
 			if (!flyTick) {
 				boolean onGround = true;// mc.player.fallDistance >= 0.1f;
 				mc.player.setOnGround(onGround);
-				FabricReflect.writeField(event.getPacket(), onGround, "field_12891", "onGround");
+				FabricReflect.writeField(event.getPacket(), onGround, "field_29179", "onGround");
 
 				flyTick = true;
 			} else {

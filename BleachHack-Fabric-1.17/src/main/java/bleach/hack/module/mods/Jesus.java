@@ -1,44 +1,38 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.eventbus.Subscribe;
-
+import bleach.hack.eventbus.BleachSubscribe;
+import bleach.hack.event.events.EventBlockShape;
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
+import bleach.hack.setting.base.SettingMode;
 import bleach.hack.module.Module;
 import bleach.hack.util.world.WorldUtils;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.shape.VoxelShapes;
 
 public class Jesus extends Module {
 
 	public Jesus() {
-		super("Jesus", GLFW.GLFW_KEY_J, Category.PLAYER, "Allows you to walk on water");
+		super("Jesus", GLFW.GLFW_KEY_J, ModuleCategory.PLAYER, "Allows you to walk on water.",
+				new SettingMode("Mode", "Vibrate", "Solid").withDesc("The jesus mode."));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
-		Entity e = mc.player.getVehicle() != null ? mc.player.getVehicle() : mc.player;
+		Entity e = mc.player.getRootVehicle();
 
-		if (e.isSneaking() || e.fallDistance > 3f)
+		if (e.isSneaking() || e.fallDistance > 3f) 
 			return;
 
 		if (WorldUtils.isFluid(new BlockPos(e.getPos().add(0, 0.3, 0)))) {
@@ -47,9 +41,20 @@ public class Jesus extends Module {
 			e.setVelocity(e.getVelocity().x, 0.05, e.getVelocity().z);
 		} else if (WorldUtils.isFluid(new BlockPos(e.getPos().add(0, 0.05, 0)))) {
 			e.setVelocity(e.getVelocity().x, 0.01, e.getVelocity().z);
-		} else if (WorldUtils.isFluid(new BlockPos(e.getPos()))) {
+		} else if (WorldUtils.isFluid(e.getBlockPos())) {
 			e.setVelocity(e.getVelocity().x, -0.005, e.getVelocity().z);
 			e.setOnGround(true);
+		}
+	}
+
+	@BleachSubscribe
+	public void onBlockShape(EventBlockShape event) {
+		if (getSetting(0).asMode().mode == 1
+				&& WorldUtils.isFluid(event.getPos())
+				&& !mc.player.isSneaking()
+				&& !mc.player.isTouchingWater()
+				&& mc.player.getY() >= event.getPos().getY() + 0.9) {
+			event.setShape(VoxelShapes.cuboid(0, 0, 0, 1, 0.9, 1));
 		}
 	}
 }

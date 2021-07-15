@@ -1,28 +1,19 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -34,15 +25,15 @@ public class Speed extends Module {
 	private boolean jumping;
 
 	public Speed() {
-		super("Speed", GLFW.GLFW_KEY_V, Category.MOVEMENT, "Allows you to go faster, what did you expect?",
-				new SettingMode("Mode", "StrafeHop", "Strafe", "OnGround", "MiniHop", "Bhop").withDesc("Speed mode"),
-				new SettingSlider("Strafe", 0.15, 0.4, 0.27, 2).withDesc("Strafe speed"),
-				new SettingSlider("OnGround", 0.1, 10, 2, 1).withDesc("OnGround speed"),
-				new SettingSlider("MiniHop", 0.1, 10, 2, 1).withDesc("MiniHop speed"),
-				new SettingSlider("Bhop", 0.1, 10, 2, 1).withDesc("Bhop speed"));
+		super("Speed", GLFW.GLFW_KEY_V, ModuleCategory.MOVEMENT, "Allows you to go faster, what did you expect?",
+				new SettingMode("Mode", "StrafeHop", "Strafe", "OnGround", "MiniHop", "Bhop").withDesc("Speed mode."),
+				new SettingSlider("Strafe", 0.15, 0.4, 0.27, 2).withDesc("Strafe speed."),
+				new SettingSlider("OnGround", 0.1, 10, 2, 1).withDesc("OnGround speed."),
+				new SettingSlider("MiniHop", 0.1, 10, 2, 1).withDesc("MiniHop speed."),
+				new SettingSlider("Bhop", 0.1, 10, 2, 1).withDesc("Bhop speed."));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		//System.out.println(mc.player.forwardSpeed + " | " + mc.player.sidewaysSpeed);
 		if (mc.options.keySneak.isPressed())

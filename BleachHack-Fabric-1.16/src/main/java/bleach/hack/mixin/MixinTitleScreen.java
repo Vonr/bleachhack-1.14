@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.mixin;
 
@@ -26,11 +17,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.google.gson.JsonPrimitive;
 
 import bleach.hack.gui.title.AccountManagerScreen;
+import bleach.hack.gui.title.BleachCreditsScreen;
 import bleach.hack.gui.title.BleachTitleScreen;
 import bleach.hack.gui.window.WindowManagerScreen;
 import bleach.hack.module.ModuleManager;
 import bleach.hack.module.mods.ClickGui;
-import bleach.hack.util.file.BleachFileHelper;
+import bleach.hack.util.io.BleachFileHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -54,7 +46,8 @@ public class MixinTitleScreen extends Screen {
 					new WindowManagerScreen(
 							Triple.of(new BleachTitleScreen(), "BleachHack", new ItemStack(Items.MUSIC_DISC_CAT)),
 							Triple.of(new AccountManagerScreen(), "Account Mang", new ItemStack(Items.PAPER)),
-							Triple.of(ClickGui.clickGui, "ClickGui", new ItemStack(Items.TOTEM_OF_UNDYING))) {
+							Triple.of(ClickGui.clickGui, "ClickGui", new ItemStack(Items.TOTEM_OF_UNDYING)),
+							Triple.of(new BleachCreditsScreen(), "Credits", new ItemStack(Items.DRAGON_HEAD))) {
 						
 						public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
 							if (keyCode == ModuleManager.getModule("ClickGui").getKey()) {

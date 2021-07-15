@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -26,15 +17,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.lwjgl.glfw.GLFW;
 
 import com.google.common.collect.Streams;
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.BleachHack;
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingSlider;
@@ -52,7 +42,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.decoration.EndCrystalEntity;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
@@ -66,13 +56,12 @@ import net.minecraft.util.math.Vec3d;
 public class CrystalAura extends Module {
 
 	private BlockPos render = null;
-	private int oldSlot = -1;
 	private int breakCooldown = 0;
 	private int placeCooldown = 0;
-	private HashMap<BlockPos, Integer> blackList = new HashMap<>();
+	private HashMap<BlockPos, Integer> blacklist = new HashMap<>();
 
 	public CrystalAura() {
-		super("CrystalAura", GLFW.GLFW_KEY_I, Category.COMBAT, "Automatically attacks crystals for you.",
+		super("CrystalAura", KEY_UNBOUND, ModuleCategory.COMBAT, "Automatically attacks crystals for you.",
 				new SettingToggle("Players", true).withDesc("Target players"),
 				new SettingToggle("Mobs", false).withDesc("Target mobs"),
 				new SettingToggle("Animals", false).withDesc("Target animals"),
@@ -88,8 +77,8 @@ public class CrystalAura extends Module {
 						new SettingToggle("1.12 Place", false).withDesc("Only places on blocks with 2 air blocks above instead of 1 because of an extra check in 1.12"),
 						new SettingToggle("Blacklist", true).withDesc("Blacklists a crystal when it can't place so it doesn't spam packets"),
 						new SettingToggle("Force Legit", false).withDesc("Only places a crystal if you can see it"),
-						new SettingSlider("MinDamg", 1, 20, 2, 0).withDesc("Minimun damage to the target to place crystals"),
-						new SettingSlider("MinRatio", 0.5, 6, 2, 1).withDesc("Minimun damage ratio to place a crystal at (Target damg/Player damg)"),
+						new SettingSlider("MinDmg", 1, 20, 2, 0).withDesc("Minimum damage to the target to place crystals"),
+						new SettingSlider("MinRatio", 0.5, 6, 2, 1).withDesc("Minimum damage ratio to place a crystal at (Target dmg/Player dmg)"),
 						new SettingSlider("CPT", 1, 10, 2, 0).withDesc("How many crystals to place per tick"),
 						new SettingSlider("Cooldown", 0, 10, 0, 0).withDesc("How many ticks to wait before placing the next batch of crystals"),
 						new SettingColor("Place Color", 0.7f, 0.7f, 1f, false)),
@@ -98,16 +87,16 @@ public class CrystalAura extends Module {
 				new SettingSlider("Range", 0, 6, 4.5, 2).withDesc("Range to place and attack crystals"));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		breakCooldown = Math.max(0, breakCooldown - 1);
 		placeCooldown = Math.max(0, placeCooldown - 1);
 
-		for (Entry<BlockPos, Integer> e: new HashMap<>(blackList).entrySet()) {
+		for (Entry<BlockPos, Integer> e: new HashMap<>(blacklist).entrySet()) {
 			if (e.getValue() > 0) {
-				blackList.replace(e.getKey(), e.getValue() - 1);
+				blacklist.replace(e.getKey(), e.getValue() - 1);
 			} else {
-				blackList.remove(e.getKey());
+				blacklist.remove(e.getKey());
 			}
 		}
 
@@ -115,11 +104,22 @@ public class CrystalAura extends Module {
 			return;
 		}
 
+		List<LivingEntity> targets = Streams.stream(mc.world.getEntities())
+				.filter(e -> !(e instanceof PlayerEntity && BleachHack.friendMang.has(e.getName().getString()))
+						&& e.isAlive()
+						&& !e.getEntityName().equals(mc.getSession().getUsername())
+						&& e != mc.player.getVehicle())
+				.filter(e -> (e instanceof PlayerEntity && getSetting(0).asToggle().state)
+						|| (e instanceof Monster && getSetting(1).asToggle().state)
+						|| (EntityUtils.isAnimal(e) && getSetting(2).asToggle().state))
+				.map(e -> (LivingEntity) e)
+				.collect(Collectors.toList());
+
 		// Explode
 		List<EndCrystalEntity> nearestCrystals = Streams.stream(mc.world.getEntities())
 				.filter(e -> (e instanceof EndCrystalEntity))
 				.map(e -> {
-					blackList.remove(e.getBlockPos().down());
+					blacklist.remove(e.getBlockPos().down());
 					return (EndCrystalEntity) e;
 				})
 				.sorted(Comparator.comparing(c -> mc.player.distanceTo(c)))
@@ -127,21 +127,19 @@ public class CrystalAura extends Module {
 
 		int breaks = 0;
 		if (getSetting(3).asToggle().state && !nearestCrystals.isEmpty() && breakCooldown <= 0) {
-			if (getSetting(3).asToggle().getChild(0).asToggle().state && mc.player.hasStatusEffect(StatusEffects.WEAKNESS)) {
-				this.oldSlot = mc.player.inventory.selectedSlot;
-				InventoryUtils.selectSlot(false, true, Comparator.comparing(i -> mc.player.inventory.getStack(i).getDamage()));
-			}
-
 			boolean end = false;
 			for (EndCrystalEntity c: nearestCrystals) {
 				if (mc.player.distanceTo(c) > getSetting(7).asSlider().getValue()
 						|| DamageUtils.willExplosionKill(c.getPos(), 6f, mc.player)
 						|| (mc.player.getHealth() + mc.player.getAbsorptionAmount()) - DamageUtils.getExplosionDamage(c.getPos(), 6f, mc.player) 
 						< getSetting(3).asToggle().getChild(4).asSlider().getValue()
-						|| mc.world.getOtherEntities(null,
-								new Box(c.getPos(), c.getPos()).expand(7),
-								e -> e instanceof LivingEntity && e != mc.player && e != mc.player.getVehicle()).isEmpty()) {
+						|| mc.world.getOtherEntities(null, new Box(c.getPos(), c.getPos()).expand(7), targets::contains).isEmpty()) {
 					continue;
+				}
+
+				int oldSlot = mc.player.inventory.selectedSlot;
+				if (getSetting(3).asToggle().getChild(0).asToggle().state && mc.player.hasStatusEffect(StatusEffects.WEAKNESS)) {
+					InventoryUtils.selectSlot(false, true, Comparator.comparing(i -> DamageUtils.getItemAttackDamage(mc.player.inventory.getStack(i))));
 				}
 
 				if (getSetting(6).asRotate().state) {
@@ -160,6 +158,8 @@ public class CrystalAura extends Module {
 				mc.interactionManager.attackEntity(mc.player, c);
 				mc.player.swingHand(Hand.MAIN_HAND);
 
+				mc.player.inventory.selectedSlot = oldSlot;
+
 				end = true;
 				breaks++;
 				if (breaks >= getSetting(3).asToggle().getChild(2).asSlider().getValue()) {
@@ -172,9 +172,6 @@ public class CrystalAura extends Module {
 			if (!getSetting(5).asToggle().state && end) {
 				return;
 			}
-		} else if (this.oldSlot != -1) {
-			mc.player.inventory.selectedSlot = this.oldSlot;
-			this.oldSlot = -1;
 		}
 
 		// Place
@@ -188,17 +185,6 @@ public class CrystalAura extends Module {
 			if (crystalSlot == -1) {
 				return;
 			}
-
-			List<LivingEntity> targets = Streams.stream(mc.world.getEntities())
-					.filter(e -> !(e instanceof PlayerEntity && BleachHack.friendMang.has(e.getName().getString()))
-							&& e.isAlive()
-							&& !e.getEntityName().equals(mc.getSession().getUsername())
-							&& e != mc.player.getVehicle())
-					.filter(e -> (e instanceof PlayerEntity && getSetting(0).asToggle().state)
-							|| (e instanceof MobEntity && getSetting(1).asToggle().state)
-							|| (EntityUtils.isAnimal(e) && getSetting(2).asToggle().state))
-					.map(e -> (LivingEntity) e)
-					.collect(Collectors.toList());
 
 			Map<BlockPos, Float> placeBlocks = new LinkedHashMap<>();
 
@@ -277,7 +263,7 @@ public class CrystalAura extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onRenderWorld(EventWorldRender.Post event) {
 		if (this.render != null) {
 			float[] col = getSetting(4).asToggle().getChild(8).asColor().getRGBFloat();
@@ -294,7 +280,7 @@ public class CrystalAura extends Module {
 				for (int z = -range; z <= range; z++) {
 					BlockPos basePos = mc.player.getBlockPos().add(x, y, z);
 
-					if (!canPlace(basePos) || (blackList.containsKey(basePos) && getSetting(4).asToggle().getChild(2).asToggle().state))
+					if (!canPlace(basePos) || (blacklist.containsKey(basePos) && getSetting(4).asToggle().getChild(2).asToggle().state))
 						continue;
 
 					if (getSetting(4).asToggle().getChild(3).asToggle().state) {

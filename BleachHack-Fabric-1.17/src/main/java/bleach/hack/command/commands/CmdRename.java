@@ -1,21 +1,14 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
+
+import org.apache.commons.lang3.StringUtils;
 
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
@@ -38,11 +31,7 @@ public class CmdRename extends Command {
 
 		ItemStack i = mc.player.getInventory().getMainHandStack();
 
-		String name = "";
-		for (int j = 0; j < args.length; j++)
-			name += args[j] += " ";
-
-		i.setCustomName(new LiteralText(name.replace("&", "\u00a7").replace("\u00a7\u00a7", "&")));
+		i.setCustomName(new LiteralText(StringUtils.join(args, ' ').replace("&", "\u00a7").replace("\u00a7\u00a7", "&")));
 		BleachLogger.infoMessage("Renamed Item");
 	}
 

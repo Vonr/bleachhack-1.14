@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.util.world;
 
@@ -24,9 +15,13 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 import bleach.hack.setting.other.SettingRotate;
+import bleach.hack.util.InventoryUtils;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.LeavesBlock;
 import net.minecraft.block.Material;
+import net.minecraft.block.PlantBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -44,6 +39,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction.Axis;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.world.chunk.WorldChunk;
 
@@ -130,30 +126,29 @@ public class WorldUtils {
 		return false;
 	}
 
-	public static boolean isBoxEmpty(Box box) {
+	public static boolean doesBoxCollide(Box box) {
 		for (int x = (int) Math.floor(box.minX); x < Math.ceil(box.maxX); x++) {
 			for (int y = (int) Math.floor(box.minY); y < Math.ceil(box.maxY); y++) {
 				for (int z = (int) Math.floor(box.minZ); z < Math.ceil(box.maxZ); z++) {
-					if (!mc.world.getBlockState(new BlockPos(x, y, z)).getMaterial().isReplaceable()) {
-						return false;
+					int fx = x, fy = y, fz = z;
+					if (mc.world.getBlockState(new BlockPos(x, y, z)).getCollisionShape(mc.world, new BlockPos(x, y, z)).getBoundingBoxes().stream()
+							.anyMatch(b -> b.offset(fx, fy, fz).intersects(box))) {
+						return true;
 					}
 				}
 			}
 		}
 
-		return true;
+		return false;
 	}
 
-	public static boolean placeBlock(BlockPos pos, int slot, SettingRotate sr, boolean forceLegit, boolean swingHand) {
-		return placeBlock(pos, slot, !sr.state ? 0 : sr.getRotateMode() + 1, forceLegit, swingHand);
+	public static boolean placeBlock(BlockPos pos, int slot, SettingRotate sr, boolean forceLegit, boolean airPlace, boolean swingHand) {
+		return placeBlock(pos, slot, !sr.state ? 0 : sr.getRotateMode() + 1, forceLegit, airPlace, swingHand);
 	}
 
-	public static boolean placeBlock(BlockPos pos, int slot, int rotateMode, boolean forceLegit, boolean swingHand) {
+	public static boolean placeBlock(BlockPos pos, int slot, int rotateMode, boolean forceLegit, boolean airPlace, boolean swingHand) {
 		if (!mc.world.isInBuildLimit(pos) || !isBlockEmpty(pos))
 			return false;
-
-		if (slot != mc.player.getInventory().selectedSlot && slot >= 0 && slot <= 8)
-			mc.player.getInventory().selectedSlot = slot;
 
 		for (Direction d : Direction.values()) {
 			if (!mc.world.isInBuildLimit(pos.offset(d)))
@@ -161,7 +156,7 @@ public class WorldUtils {
 
 			Block neighborBlock = mc.world.getBlockState(pos.offset(d)).getBlock();
 
-			if (neighborBlock.getDefaultState().getMaterial().isReplaceable())
+			if (!airPlace && neighborBlock.getDefaultState().getMaterial().isReplaceable())
 				continue;
 
 			Vec3d vec = getLegitLookPos(pos.offset(d), d.getOpposite(), true, 5);
@@ -178,51 +173,12 @@ public class WorldUtils {
 				}
 			}
 
-			if (rotateMode == 1) {
-				facePosPacket(vec.x, vec.y, vec.z);
-			} else if (rotateMode == 2) {
-				facePos(vec.x, vec.y, vec.z);
+			int prevSlot = mc.player.getInventory().selectedSlot;
+			Hand hand = InventoryUtils.selectSlot(slot);
+
+			if (hand == null) {
+				return false;
 			}
-
-			if (RIGHTCLICKABLE_BLOCKS.contains(neighborBlock)) {
-				mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, Mode.PRESS_SHIFT_KEY));
-			}
-
-			if (swingHand) {
-				mc.player.swingHand(Hand.MAIN_HAND);
-			} else {
-				mc.player.networkHandler.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
-			}
-
-			mc.interactionManager.interactBlock(
-					mc.player, mc.world, Hand.MAIN_HAND, new BlockHitResult(Vec3d.of(pos), d.getOpposite(), pos.offset(d), false));
-
-			if (RIGHTCLICKABLE_BLOCKS.contains(neighborBlock))
-				mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, Mode.RELEASE_SHIFT_KEY));
-
-			return true;
-		}
-
-		return false;
-	}
-
-	public static boolean airPlaceBlock(BlockPos pos, int slot, SettingRotate sr, boolean forceLegit, boolean swingHand) {
-		return airPlaceBlock(pos, slot, !sr.state ? 0 : sr.getRotateMode() + 1, forceLegit, swingHand);
-	}
-
-	public static boolean airPlaceBlock(BlockPos pos, int slot, int rotateMode, boolean forceLegit, boolean swingHand) {
-		if (!mc.world.isInBuildLimit(pos) || !isBlockEmpty(pos))
-			return false;
-
-		if (slot != mc.player.getInventory().selectedSlot && slot >= 0 && slot <= 8)
-			mc.player.getInventory().selectedSlot = slot;
-
-		for (Direction d : Direction.values()) {
-			if (!mc.world.isInBuildLimit(pos.offset(d)))
-				continue;
-
-			Block neighborBlock = mc.world.getBlockState(pos.offset(d)).getBlock();
-			Vec3d vec = Vec3d.of(pos).add(0.5 + d.getOffsetX() * 0.5, 0.5 + d.getOffsetY() * 0.5, 0.5 + d.getOffsetZ() * 0.5);
 
 			if (rotateMode == 1) {
 				facePosPacket(vec.x, vec.y, vec.z);
@@ -235,16 +191,18 @@ public class WorldUtils {
 			}
 
 			if (swingHand) {
-				mc.player.swingHand(Hand.MAIN_HAND);
+				mc.player.swingHand(hand);
 			} else {
-				mc.player.networkHandler.sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
+				mc.player.networkHandler.sendPacket(new HandSwingC2SPacket(hand));
 			}
 
-			mc.interactionManager.interactBlock(
-					mc.player, mc.world, Hand.MAIN_HAND, new BlockHitResult(Vec3d.of(pos), d.getOpposite(), pos.offset(d), false));
+			mc.interactionManager.interactBlock(mc.player, mc.world, hand,
+					new BlockHitResult(Vec3d.of(pos), airPlace ? d : d.getOpposite(), airPlace ? pos : pos.offset(d), false));
 
 			if (RIGHTCLICKABLE_BLOCKS.contains(neighborBlock))
 				mc.player.networkHandler.sendPacket(new ClientCommandC2SPacket(mc.player, Mode.RELEASE_SHIFT_KEY));
+
+			mc.player.getInventory().selectedSlot = prevSlot;
 
 			return true;
 		}
@@ -257,7 +215,7 @@ public class WorldUtils {
 	}
 
 	public static Vec3d getLegitLookPos(Box box, Direction dir, boolean raycast, int res, double extrude) {
-		Vec3d eyePos = new Vec3d(mc.player.getX(), mc.player.getEyeY(), mc.player.getZ());
+		Vec3d eyePos = mc.player.getEyePos();
 		Vec3d blockPos = new Vec3d(box.minX, box.minY, box.minZ).add(
 				(dir == Direction.WEST ? -extrude : dir.getOffsetX() * box.getXLength() + extrude),
 				(dir == Direction.DOWN ? -extrude : dir.getOffsetY() * box.getYLength() + extrude),
@@ -338,8 +296,8 @@ public class WorldUtils {
 		float yaw = (float) Math.toDegrees(Math.atan2(diffZ, diffX)) - 90F;
 		float pitch = (float) -Math.toDegrees(Math.atan2(diffY, diffXZ));
 
-		mc.player.yaw += MathHelper.wrapDegrees(yaw - mc.player.yaw);
-		mc.player.pitch += MathHelper.wrapDegrees(pitch - mc.player.pitch);
+		mc.player.setYaw(mc.player.getYaw() + MathHelper.wrapDegrees(yaw - mc.player.getYaw()));
+		mc.player.setPitch(mc.player.getPitch() + MathHelper.wrapDegrees(pitch - mc.player.getPitch()));
 	}
 
 	public static void facePosPacket(double x, double y, double z) {
@@ -353,14 +311,30 @@ public class WorldUtils {
 		float pitch = (float) -Math.toDegrees(Math.atan2(diffY, diffXZ));
 
 		if (!mc.player.hasVehicle()) {
-			mc.player.headYaw = mc.player.yaw + MathHelper.wrapDegrees(yaw - mc.player.yaw);
-			mc.player.bodyYaw = mc.player.yaw + MathHelper.wrapDegrees(yaw - mc.player.yaw);
-			mc.player.renderPitch = mc.player.pitch + MathHelper.wrapDegrees(pitch - mc.player.pitch);
+			mc.player.headYaw = mc.player.getYaw() + MathHelper.wrapDegrees(yaw - mc.player.getYaw());
+			mc.player.bodyYaw = mc.player.getYaw() + MathHelper.wrapDegrees(yaw - mc.player.getYaw());
+			mc.player.renderPitch = mc.player.getPitch() + MathHelper.wrapDegrees(pitch - mc.player.getPitch());
 		}
 
 		mc.player.networkHandler.sendPacket(
 				new PlayerMoveC2SPacket.LookAndOnGround(
-						mc.player.yaw + MathHelper.wrapDegrees(yaw - mc.player.yaw),
-						mc.player.pitch + MathHelper.wrapDegrees(pitch - mc.player.pitch), mc.player.isOnGround()));
+						mc.player.getYaw() + MathHelper.wrapDegrees(yaw - mc.player.getYaw()),
+						mc.player.getPitch() + MathHelper.wrapDegrees(pitch - mc.player.getPitch()), mc.player.isOnGround()));
+	}
+
+	public static int getTopBlockIgnoreLeaves(int x, int z) {
+		int top = mc.world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
+
+		while (top > mc.world.getBottomY()) {
+			BlockState state = mc.world.getBlockState(new BlockPos(x, top, z));
+
+			if (!(state.isAir() || state.getBlock() instanceof LeavesBlock || state.getBlock() instanceof PlantBlock)) {
+				break;
+			}
+
+			top--;
+		}
+
+		return top;
 	}
 }

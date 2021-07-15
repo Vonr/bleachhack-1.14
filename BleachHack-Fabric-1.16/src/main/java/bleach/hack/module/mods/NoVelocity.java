@@ -1,27 +1,18 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventPlayerPushed;
 import bleach.hack.event.events.EventReadPacket;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
@@ -35,26 +26,26 @@ import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket;
 public class NoVelocity extends Module {
 
 	public NoVelocity() {
-		super("NoVelocity", KEY_UNBOUND, Category.PLAYER, "If you take some damage, you don't move.",
-				new SettingToggle("Knockback", true).withDesc("Reduces knockback from other entites").withChildren(
+		super("NoVelocity", KEY_UNBOUND, ModuleCategory.PLAYER, "If you take some damage, you don't move.",
+				new SettingToggle("Knockback", true).withDesc("Reduces knockback from other entities").withChildren(
 						new SettingSlider("VelXZ", 0, 100, 0, 1).withDesc("How much horizontal velocity"),
 						new SettingSlider("VelY", 0, 100, 0, 1).withDesc("How much vertical velocity")),
 				new SettingToggle("Explosions", true).withDesc("Reduces explosion velocity").withChildren(
 						new SettingSlider("VelXZ", 0, 100, 0, 1).withDesc("How much horizontal velocity"),
 						new SettingSlider("VelY", 0, 100, 0, 1).withDesc("How much vertical velocity")),
-				new SettingToggle("Pushing", true).withDesc("Reduces how much you get pushed by entites").withChildren(
+				new SettingToggle("Pushing", true).withDesc("Reduces how much you get pushed by entities").withChildren(
 						new SettingSlider("Amount", 0, 100, 0, 1).withDesc("How much to reduce pushing")),
 				new SettingToggle("Fluids", true).withDesc("Reduces how much you get pushed from fluids"));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onPlayerPushed(EventPlayerPushed event) {
 		if (getSetting(2).asToggle().state) {
 			event.setPush(event.getPush().multiply(getSetting(2).asToggle().getChild(0).asSlider().getValue() / 100d));
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void readPacket(EventReadPacket event) {
 		if (mc.player == null)
 			return;
@@ -80,8 +71,8 @@ public class NoVelocity extends Module {
 			double velY = getSetting(1).asToggle().getChild(1).asSlider().getValue() / 100;
 
 			FabricReflect.writeField(event.getPacket(), (float) (packet.getPlayerVelocityX() * velXZ), "field_12176", "playerVelocityX");
-			FabricReflect.writeField(event.getPacket(), (float) (packet.getPlayerVelocityY() * velY), "field_12182", "playerVelocityY");
-			FabricReflect.writeField(event.getPacket(), (float) (packet.getPlayerVelocityZ() * velXZ), "field_12183", "playerVelocityZ");
+			FabricReflect.writeField(event.getPacket(), (float) (packet.getPlayerVelocityY() * velY), "field_12183", "playerVelocityY");
+			FabricReflect.writeField(event.getPacket(), (float) (packet.getPlayerVelocityZ() * velXZ), "field_12182", "playerVelocityZ");
 		}
 	}
 

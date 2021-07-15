@@ -1,16 +1,24 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventSendPacket;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket;
 
 public class ColorSigns extends Module {
 
 	public ColorSigns() {
-		super("ColorSigns", KEY_UNBOUND, Category.EXPLOITS, "Allows you to use colors on signs on NON-PAPER servers (use \"&\" for color symbols)");
+		super("ColorSigns", KEY_UNBOUND, ModuleCategory.EXPLOITS, "Allows you to use colors on signs on NON-PAPER servers (use \"&\" for color symbols)");
 	}
 
 	/* This works because the code to strip invalid characters from signs is flawed
@@ -19,7 +27,7 @@ public class ColorSigns extends Module {
 	 * codes ontop of eachother like "&&66", it will when search and find the middle
 	 * one and remove it to leave "&6" left which is still a valid formatting code.
 	 * Paper has a patch for it to correct it so it doesn't work there */
-	@Subscribe
+	@BleachSubscribe
 	public void onPacketSend(EventSendPacket event) {
 		if (event.getPacket() instanceof UpdateSignC2SPacket) {
 			UpdateSignC2SPacket p = (UpdateSignC2SPacket) event.getPacket();

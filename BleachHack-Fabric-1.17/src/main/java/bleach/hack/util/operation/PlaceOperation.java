@@ -1,7 +1,16 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.util.operation;
 
 import java.util.Random;
 
+import bleach.hack.util.InventoryUtils;
 import bleach.hack.util.render.RenderUtils;
 import bleach.hack.util.render.WorldRenderUtils;
 import bleach.hack.util.render.color.QuadColor;
@@ -28,7 +37,7 @@ public class PlaceOperation extends Operation {
 	public boolean canExecute() {
 		for (int i = 0; i < 9; i++) {
 			if (mc.player.getInventory().getStack(i).getItem() == item) {
-				return mc.player.getPos().add(0, mc.player.getEyeHeight(mc.player.getPose()), 0).distanceTo(Vec3d.of(pos).add(0.5, 0.5, 0.5)) < 4.5;
+				return mc.player.getEyePos().distanceTo(Vec3d.ofCenter(pos)) < 4.5;
 			}
 		}
 
@@ -37,13 +46,9 @@ public class PlaceOperation extends Operation {
 
 	@Override
 	public boolean execute() {
-		for (int i = 0; i < 9; i++) {
-			if (mc.player.getInventory().getStack(i).getItem() == item) {
-				return WorldUtils.placeBlock(pos, i, 0, false, true);
-			}
-		}
+		int slot = InventoryUtils.getSlot(true, i -> mc.player.getInventory().getStack(i).getItem() == item);
 
-		return false;
+		return WorldUtils.placeBlock(pos, slot, 0, false, false, true);
 	}
 
 	@Override
@@ -58,11 +63,11 @@ public class PlaceOperation extends Operation {
 	@Override
 	public void render() {
 		if (getItem() instanceof BlockItem) {
-			MatrixStack matrix = WorldRenderUtils.matrixFrom(pos.getX(), pos.getY(), pos.getZ());
+			MatrixStack matrices = WorldRenderUtils.matrixFrom(pos.getX(), pos.getY(), pos.getZ());
 
 			BlockState state = ((BlockItem) getItem()).getBlock().getDefaultState();
 
-			mc.getBlockRenderManager().renderBlock(state, pos, mc.world, matrix,
+			mc.getBlockRenderManager().renderBlock(state, pos, mc.world, matrices,
 					mc.getBufferBuilders().getEntityVertexConsumers().getBuffer(RenderLayers.getMovingBlockLayer(state)),
 					false, new Random(0));
 

@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.setting.base;
 
 import org.lwjgl.glfw.GLFW;
@@ -27,12 +35,12 @@ public class SettingBind extends SettingBase {
 	}
 
 	@Override
-	public void render(ModuleWindow window, MatrixStack matrix, int x, int y, int len) {
+	public void render(ModuleWindow window, MatrixStack matrices, int x, int y, int len) {
 		if (window.mouseOver(x, y, x + len, y + 12)) {
-			DrawableHelper.fill(matrix, x + 1, y, x + len, y + 12, 0x70303070);
+			DrawableHelper.fill(matrices, x + 1, y, x + len, y + 12, 0x70303070);
 		}
 		
-		if (window.keyDown >= 0 && window.mouseOver(x, y, x + len, y + 12)) {
+		if (window.keyDown >= 0 && window.keyDown != GLFW.GLFW_KEY_ESCAPE && window.mouseOver(x, y, x + len, y + 12)) {
 			mod.setKey(window.keyDown == GLFW.GLFW_KEY_DELETE ? Module.KEY_UNBOUND : window.keyDown);
 			MinecraftClient.getInstance().getSoundManager().play(
 					PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F, 0.3F));
@@ -45,7 +53,7 @@ public class SettingBind extends SettingBase {
 			name = "NONE";
 
 		MinecraftClient.getInstance().textRenderer.drawWithShadow(
-				matrix, "Bind: " + name + (window.mouseOver(x, y, x + len, y + 12) ? "..." : ""), x + 3, y + 2, 0xcfe0cf);
+				matrices, "Bind: " + name + (window.mouseOver(x, y, x + len, y + 12) ? "..." : ""), x + 3, y + 2, 0xcfe0cf);
 	}
 
 	public SettingBind withDesc(String desc) {

@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.ArrayList;
@@ -5,11 +13,11 @@ import java.util.List;
 
 import org.apache.commons.lang3.tuple.Triple;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingMode;
@@ -36,23 +44,23 @@ public class Trajectories extends Module {
 	private List<Triple<List<Vec3d>, Entity, BlockPos>> poses = new ArrayList<>();
 
 	public Trajectories() {
-		super("Trajectories", KEY_UNBOUND, Category.RENDER, "Shows the trajectories of projectiles",
-				new SettingMode("Draw", "Line", "Dots").withDesc("How to draw the line where the projectile is going"),
-				new SettingToggle("Throwables", true).withDesc("Shows snowballs/eggs/epearls"),
-				new SettingToggle("XP Bottles", true).withDesc("Shows XP bottles"),
-				new SettingToggle("Potions", true).withDesc("Shows splash/lingering potions"),
-				new SettingToggle("Flying", true).withDesc("Shows trajectories for flying projectiles").withChildren(
-						new SettingToggle("Throwables", true).withDesc("Shows flying snowballs/eggs/epearls"),
-						new SettingToggle("XP Bottles", true).withDesc("Shows flying XP bottles"),
-						new SettingToggle("Potions", true).withDesc("Shows flying splash/lingering potions")),
-				new SettingToggle("Other Players", false).withDesc("Show other players trajectories"),
-				new SettingColor("Color", 1f, 0.3f, 1f, false),
+		super("Trajectories", KEY_UNBOUND, ModuleCategory.RENDER, "Shows the trajectories of projectiles.",
+				new SettingMode("Draw", "Line", "Dots").withDesc("How to draw trajectories."),
+				new SettingToggle("Throwables", true).withDesc("Shows snowballs/eggs/epearls."),
+				new SettingToggle("XP Bottles", true).withDesc("Shows trajectories for XP bottles."),
+				new SettingToggle("Potions", true).withDesc("Shows trajectories for splash/lingering potions."),
+				new SettingToggle("Flying", true).withDesc("Shows trajectories for flying projectiles.").withChildren(
+						new SettingToggle("Throwables", true).withDesc("Shows trajectories for flying snowballs/eggs/epearls."),
+						new SettingToggle("XP Bottles", true).withDesc("Shows trajectories for flying XP bottles."),
+						new SettingToggle("Potions", true).withDesc("Shows trajectories for flying splash/lingering potions.")),
+				new SettingToggle("Other Players", false).withDesc("Show other players trajectories."),
+				new SettingColor("Color", 1f, 0.3f, 1f, false).withDesc("The color of the trajectories."),
 
-				new SettingSlider("Width", 0.1, 5, 2, 2).withDesc("Thickness of the trajectories"),
-				new SettingSlider("Opacity", 0, 1, 0.7, 2).withDesc("Opacity of the trajectories"));
+				new SettingSlider("Width", 0.1, 5, 2, 2).withDesc("Thickness of the trajectories."),
+				new SettingSlider("Opacity", 0, 1, 0.7, 2).withDesc("Opacity of the trajectories."));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		poses.clear();
 
@@ -98,7 +106,7 @@ public class Trajectories extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onWorldRender(EventWorldRender.Post event) {
 		float[] col = getSetting(6).asColor().getRGBFloat();
 

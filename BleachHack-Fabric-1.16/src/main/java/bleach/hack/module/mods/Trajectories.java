@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.ArrayList;
@@ -5,11 +13,11 @@ import java.util.List;
 
 import org.apache.commons.lang3.tuple.Triple;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingMode;
@@ -36,7 +44,7 @@ public class Trajectories extends Module {
 	private List<Triple<List<Vec3d>, Entity, BlockPos>> poses = new ArrayList<>();
 
 	public Trajectories() {
-		super("Trajectories", KEY_UNBOUND, Category.RENDER, "Shows the trajectories of projectiles",
+		super("Trajectories", KEY_UNBOUND, ModuleCategory.RENDER, "Shows the trajectories of projectiles",
 				new SettingMode("Draw", "Line", "Dots").withDesc("How to draw the line where the projectile is going"),
 				new SettingToggle("Throwables", true).withDesc("Shows snowballs/eggs/epearls"),
 				new SettingToggle("XP Bottles", true).withDesc("Shows XP bottles"),
@@ -52,7 +60,7 @@ public class Trajectories extends Module {
 				new SettingSlider("Opacity", 0, 1, 0.4, 2).withDesc("Opacity of the trajectories"));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		poses.clear();
 
@@ -98,7 +106,7 @@ public class Trajectories extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onWorldRender(EventWorldRender.Post event) {
 		float[] col = getSetting(6).asColor().getRGBFloat();
 

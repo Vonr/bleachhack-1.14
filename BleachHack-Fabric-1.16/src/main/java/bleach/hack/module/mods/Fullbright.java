@@ -1,11 +1,19 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -16,7 +24,7 @@ import net.minecraft.entity.effect.StatusEffects;
 public class Fullbright extends Module {
 
 	public Fullbright() {
-		super("Fullbright", GLFW.GLFW_KEY_C, Category.RENDER, "Turns your gamma setting up.",
+		super("Fullbright", GLFW.GLFW_KEY_C, ModuleCategory.RENDER, "Turns your gamma setting up.",
 				new SettingMode("Mode", "Gamma", "Potion").withDesc("Fullbright mode"),
 				new SettingSlider("Gamma", 1, 12, 9, 1).withDesc("How much to turn the gamma up when using gamma mode"));
 	}
@@ -50,7 +58,7 @@ public class Fullbright extends Module {
 		BleachQueue.cancelQueue("fullbright");
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (getSetting(0).asMode().mode == 0) {
 			if (mc.options.gamma < getSetting(1).asSlider().getValue()) {

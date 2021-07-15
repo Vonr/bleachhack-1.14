@@ -1,12 +1,20 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingSlider;
 import bleach.hack.setting.base.SettingToggle;
@@ -28,14 +36,14 @@ public class AutoArmor extends Module {
 	private int tickDelay = 0;
 
 	public AutoArmor() {
-		super("AutoArmor", KEY_UNBOUND, Category.PLAYER, "Automatically equips armor",
-				new SettingToggle("Anti Break", false).withDesc("Unequips your armor when its about to break"),
-				new SettingToggle("Prefer Elytra", false).withDesc("Equips elytras instead of chestplates when possible"),
-				new SettingToggle("Delay", true).withDesc("Adds a delay between equipping armor pieces to make it bypass more anticheats").withChildren(
-						new SettingSlider("Delay", 0, 20, 1, 0).withDesc("How many ticks between putting on armor pieces")));
+		super("AutoArmor", KEY_UNBOUND, ModuleCategory.PLAYER, "Automatically equips armor.",
+				new SettingToggle("AntiBreak", false).withDesc("Unequips your armor when its about to break."),
+				new SettingToggle("PreferElytra", false).withDesc("Equips elytras instead of chestplates when possible."),
+				new SettingToggle("Delay", true).withDesc("Adds a delay between equipping armor pieces.").withChildren(
+						new SettingSlider("Delay", 0, 20, 1, 0).withDesc("How many ticks between putting on armor pieces.")));
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (!BleachQueue.isEmpty("autoarmor_equip"))
 			return;

@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module.mods;
 
@@ -21,11 +12,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingColor;
 import bleach.hack.setting.base.SettingSlider;
@@ -40,7 +31,7 @@ public class Trail extends Module {
 	private Vec3d lastVec = null;
 
 	public Trail() {
-		super("Trail", KEY_UNBOUND, Category.RENDER, "Shows a trail where you go",
+		super("Trail", KEY_UNBOUND, ModuleCategory.RENDER, "Shows a trail where you go",
 				new SettingToggle("Trail", true).withDesc("Enable trailing"),
 				new SettingToggle("KeepTrail", false).withDesc("Keep the trail after turning the module off"),
 				new SettingColor("Color", 0.8f, 0.2f, 0.2f, false).withDesc("Main trail color"),
@@ -61,7 +52,7 @@ public class Trail extends Module {
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		if (!getSetting(0).asToggle().state) {
 			return;
@@ -76,7 +67,7 @@ public class Trail extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onRender(EventWorldRender.Post event) {
 		int color = getSetting(2).asColor().getRGB();
 

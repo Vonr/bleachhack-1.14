@@ -1,28 +1,23 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+
 import bleach.hack.command.Command;
 import bleach.hack.command.CommandCategory;
+import bleach.hack.command.exception.CmdSyntaxException;
 import bleach.hack.util.BleachLogger;
-import bleach.hack.util.file.BleachJsonHelper;
+import bleach.hack.util.io.BleachJsonHelper;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
@@ -38,14 +33,13 @@ public class CmdNBT extends Command {
 	@Override
 	public void onCommand(String alias, String[] args) throws Exception {
 		if (args.length == 0) {
-			printSyntaxError();
-			return;
+			throw new CmdSyntaxException();
 		}
 
 		ItemStack item = mc.player.inventory.getMainHandStack();
 
 		if (args[0].equalsIgnoreCase("get")) {
-			CompoundTag tag = item.getTag();
+			NbtCompound tag = item.getTag();
 
 			if (tag == null) {
 				BleachLogger.infoMessage("\u00a7c\u00a7lNo NBT on this item!");
@@ -64,21 +58,16 @@ public class CmdNBT extends Command {
 			BleachLogger.infoMessage(new LiteralText("\u00a76\u00a7lNBT: ").append(copy).append("\u00a76\n" + stringTag));
 		} else if (args[0].equalsIgnoreCase("copy")) {
 			mc.keyboard.setClipboard(item.getTag() + "");
-			BleachLogger.infoMessage("\u00a76Copied\n\u00a7f" + (item.getTag() + "\n") + "\u00a76to clipboard.");
+			BleachLogger.infoMessage("\u00a76Copied\n\u00a7f" + item.getTag() + "\n\u00a76to clipboard.");
 		} else if (args[0].equalsIgnoreCase("set")) {
-			try {
-				if (args[1].isEmpty()) {
-					printSyntaxError();
-					return;
-				}
-
-				item.setTag(StringNbtReader.parse(args[1]));
-				BleachLogger.infoMessage("\u00a76Set NBT of " + item.getItem().getName() + "to\n\u00a7f" + (item.getTag()));
-			} catch (Exception e) {
-				printSyntaxError();
+			if (args.length < 2) {
+				throw new CmdSyntaxException();
 			}
+
+			item.setTag(StringNbtReader.parse(StringUtils.join(ArrayUtils.subarray(args, 1, args.length), ' ')));
+			BleachLogger.infoMessage("\u00a76Set NBT of " + item.getItem().getName().getString() + " to\n" + BleachJsonHelper.formatJson(item.getTag().toString()));
 		} else if (args[0].equalsIgnoreCase("wipe")) {
-			item.setTag(new CompoundTag());
+			item.setTag(new NbtCompound());
 		}
 
 	}

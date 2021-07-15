@@ -1,19 +1,10 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.module;
 
@@ -24,7 +15,9 @@ import java.util.stream.Collectors;
 import org.lwjgl.glfw.GLFW;
 
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 
+import bleach.hack.util.BleachLogger;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.InputUtil;
 
@@ -35,8 +28,8 @@ public class ModuleManager {
 	private static final Map<String, Module> modules = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
 	public static Map<String, Module> getModuleMap() {
-	    return modules;
-    }
+		return modules;
+	}
 
 	public static Iterable<Module> getModules() {
 		return modules.values();
@@ -55,14 +48,14 @@ public class ModuleManager {
 
 						loadModule(module);
 					} catch (Exception exception) {
-						System.err.printf("Failed to load module %s: could not instantiate.%n", moduleClass);
+						BleachLogger.logger.error("Failed to load module %s: could not instantiate.", moduleClass);
 						exception.printStackTrace();
 					}
 				} else {
-					System.err.printf("Failed to load module %s: not a descendant of Module.%n", moduleClass);
+					BleachLogger.logger.error("Failed to load module %s: not a descendant of Module.", moduleClass);
 				}
 			} catch (Exception exception) {
-				System.err.printf("Failed to load module %s.%n", moduleString);
+				BleachLogger.logger.error("Failed to load module %s.", moduleString);
 				exception.printStackTrace();
 			}
 		}
@@ -70,24 +63,18 @@ public class ModuleManager {
 
 	public static void loadModule(Module module) {
 		if (modules.containsValue(module)) {
-			System.err.printf("Failed to load module %s: a module with this name is already loaded.%n", module.getName());
+			BleachLogger.logger.error("Failed to load module %s: a module with this name is already loaded.", module.getName());
 		} else {
 			modules.put(module.getName(), module);
 			// TODO: Setup init system for modules
 		}
 	}
 
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	public static <T extends Module> T getModuleByClass(Class<T> clazz) {
-		return (T) modules.values().stream().filter(clazz::isInstance).findFirst().orElse(null);
-	}
-
 	public static Module getModule(String name) {
 		return modules.get(name);
 	}
 
-	public static List<Module> getModulesInCat(Category cat) {
+	public static List<Module> getModulesInCat(ModuleCategory cat) {
 		return modules.values().stream().filter(m -> m.getCategory().equals(cat)).collect(Collectors.toList());
 	}
 
@@ -95,6 +82,23 @@ public class ModuleManager {
 	public static void handleKeyPress(int key) {
 		if (!InputUtil.isKeyPressed(MinecraftClient.getInstance().getWindow().getHandle(), GLFW.GLFW_KEY_F3)) {
 			modules.values().stream().filter(m -> m.getKey() == key).forEach(Module::toggle);
+		}
+	}
+
+	private class ModuleListJson {
+
+		@SerializedName("package")
+		private String packageName;
+
+		@SerializedName("modules")
+		private List<String> modules;
+
+		public String getPackage() {
+			return this.packageName;
+		}
+
+		public List<String> getModules() {
+			return this.modules;
 		}
 	}
 }

@@ -1,24 +1,16 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.gui;
 
 import com.mojang.bridge.game.PackType;
 
+import bleach.hack.util.BleachLogger;
 import bleach.hack.util.FabricReflect;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.gui.screen.Screen;
@@ -44,22 +36,22 @@ public class ProtocolScreen extends Screen {
 	public void init() {
 		super.init();
 
-		addButton(new ButtonWidget(width / 2 - 100, height / 2 + 50, 98, 20, new LiteralText("Update"), button -> {
+		addDrawableChild(new ButtonWidget(width / 2 - 100, height / 2 + 50, 98, 20, new LiteralText("Update"), button -> {
 			try {
 				int i = Integer.parseInt(protocolField.getText());
 				int i1 = Integer.parseInt(packVerField.getText());
 
 				FabricReflect.writeField(SharedConstants.getGameVersion(), nameField.getText(), "field_16733", "name");
 				FabricReflect.writeField(SharedConstants.getGameVersion(), i, "field_16735", "protocolVersion");
-				FabricReflect.writeField(SharedConstants.getGameVersion(), i1, "field_16734", "packVersion");
+				FabricReflect.writeField(SharedConstants.getGameVersion(), i1, "field_16734", "dataPackVersion");
 				FabricReflect.writeField(SharedConstants.getGameVersion(), targetField.getText(), "field_16740", "releaseTarget");
-				System.out.println("Set Protocol");
+				BleachLogger.logger.info("Set Protocol");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}));
-		addButton(new ButtonWidget(width / 2 + 2, height / 2 + 50, 98, 20, new LiteralText("Done"), button -> {
-			client.openScreen(serverScreen);
+		addDrawableChild(new ButtonWidget(width / 2 + 2, height / 2 + 50, 98, 20, new LiteralText("Done"), button -> {
+			client.setScreen(serverScreen);
 		}));
 
 		nameField = new TextFieldWidget(textRenderer, width / 2 - 98, height / 2 - 60, 196, 18, LiteralText.EMPTY);
@@ -73,22 +65,22 @@ public class ProtocolScreen extends Screen {
 		// ipField.changeFocus(true);
 	}
 
-	public void render(MatrixStack matrix, int mouseX, int mouseY, float delta) {
-		renderBackground(matrix);
-		drawStringWithShadow(matrix, textRenderer, "\u00a77Name:", width / 2 - 103 - textRenderer.getWidth("Name:"), height / 2 - 55, -1);
-		drawStringWithShadow(matrix, textRenderer, "\u00a77Protocol:", width / 2 - 103 - textRenderer.getWidth("Protocol:"), height / 2 - 30, -1);
-		drawStringWithShadow(matrix, textRenderer, "\u00a77Target Ver:", width / 2 - 103 - textRenderer.getWidth("Target Ver:"), height / 2 - 5, -1);
-		drawStringWithShadow(matrix, textRenderer, "\u00a77Packet Ver:", width / 2 - 103 - textRenderer.getWidth("Packet Ver:"), height / 2 + 20, -1);
-		nameField.render(matrix, mouseX, mouseY, delta);
-		protocolField.render(matrix, mouseX, mouseY, delta);
-		targetField.render(matrix, mouseX, mouseY, delta);
-		packVerField.render(matrix, mouseX, mouseY, delta);
+	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+		renderBackground(matrices);
+		drawStringWithShadow(matrices, textRenderer, "\u00a77Name:", width / 2 - 103 - textRenderer.getWidth("Name:"), height / 2 - 55, -1);
+		drawStringWithShadow(matrices, textRenderer, "\u00a77Protocol:", width / 2 - 103 - textRenderer.getWidth("Protocol:"), height / 2 - 30, -1);
+		drawStringWithShadow(matrices, textRenderer, "\u00a77Target Ver:", width / 2 - 103 - textRenderer.getWidth("Target Ver:"), height / 2 - 5, -1);
+		drawStringWithShadow(matrices, textRenderer, "\u00a77Packet Ver:", width / 2 - 103 - textRenderer.getWidth("Packet Ver:"), height / 2 + 20, -1);
+		nameField.render(matrices, mouseX, mouseY, delta);
+		protocolField.render(matrices, mouseX, mouseY, delta);
+		targetField.render(matrices, mouseX, mouseY, delta);
+		packVerField.render(matrices, mouseX, mouseY, delta);
 
-		super.render(matrix, mouseX, mouseY, delta);
+		super.render(matrices, mouseX, mouseY, delta);
 	}
 
 	public void onClose() {
-		client.openScreen(serverScreen);
+		client.setScreen(serverScreen);
 	}
 
 	public boolean mouseClicked(double mouseX, double mouseY, int button) {

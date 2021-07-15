@@ -1,3 +1,11 @@
+/*
+ * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
+ * Copyright (c) 2021 Bleach and contributors.
+ *
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
+ */
 package bleach.hack.module.mods;
 
 import java.util.ArrayList;
@@ -6,14 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.commons.lang3.RandomUtils;
-import com.google.common.eventbus.Subscribe;
+import bleach.hack.eventbus.BleachSubscribe;
 
 import bleach.hack.event.events.EventOpenScreen;
 import bleach.hack.event.events.EventReadPacket;
 import bleach.hack.event.events.EventSendPacket;
 import bleach.hack.event.events.EventTick;
 import bleach.hack.event.events.EventWorldRender;
-import bleach.hack.module.Category;
+import bleach.hack.module.ModuleCategory;
 import bleach.hack.module.Module;
 import bleach.hack.setting.base.SettingMode;
 import bleach.hack.setting.base.SettingSlider;
@@ -27,7 +35,6 @@ import net.minecraft.block.ChestBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
@@ -37,6 +44,7 @@ import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
 import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.text.LiteralText;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -58,7 +66,7 @@ public class AutoSteal extends Module {
 	private int lastOpen = 0;
 
 	public AutoSteal() {
-		super("AutoSteal", KEY_UNBOUND, Category.WORLD, "Automatically steals items from chests",
+		super("AutoSteal", KEY_UNBOUND, ModuleCategory.PLAYER, "Automatically steals items from chests",
 				new SettingMode("Gui", "Normal", "Project", "NoGui" /* Novoline cheststealer*/).withDesc("How to display the chest gui when stealing"),
 				new SettingSlider("Delay", 0, 20, 2, 0).withDesc("Delay between taking items (in ticks)"),
 				new SettingSlider("RandDelay", 0, 8, 2, 0).withDesc("Extra random delay between taking items (in ticks)"),
@@ -86,7 +94,7 @@ public class AutoSteal extends Module {
 		super.onDisable();
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onTick(EventTick event) {
 		currentTime++;
 
@@ -147,7 +155,7 @@ public class AutoSteal extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onWorldRender(EventWorldRender.Post event) {
 		if (currentItems != null && currentPos != null) {
 			if (getSetting(0).asMode().mode == 1) {
@@ -164,22 +172,24 @@ public class AutoSteal extends Module {
 				Vec3d startPos = new Vec3d(currentPos.getX() + 0.5, currentPos.getY() + 1 + (renderItems.size() / 9) * 0.4, currentPos.getZ() + 0.5);
 
 				for (int i = 0; i < renderItems.size(); i++) {
-					MatrixStack matrix = WorldRenderUtils.drawGuiItem(startPos.x, startPos.y - (i / 9) * 0.4, startPos.z, i % 9 - 4.5, 0, 0.3, renderItems.get(i));
+					WorldRenderUtils.drawGuiItem(startPos.x, startPos.y - i / 9 * 0.4, startPos.z, (4.5 - i % 9) * 0.3, 0, 0.3, renderItems.get(i));
 
 					if (renderItems.get(i).getCount() > 1) {
-						matrix.scale(-0.05F, -0.05F, 1f);
-						int w = mc.textRenderer.getWidth("" + renderItems.get(i).getCount()) / 2;
-						mc.textRenderer.drawWithShadow(matrix, "" + renderItems.get(i).getCount(), 7 - w, 3, 0xffffff);
+						double w = mc.textRenderer.getWidth(renderItems.get(i).getCount() + "") / 220d;
+						WorldRenderUtils.drawText(
+								new LiteralText(renderItems.get(i).getCount() + ""),
+								startPos.x, startPos.y - i / 9 * 0.4 - 0.04, startPos.z, (4.5 - i % 9) * 0.3 - w, 0, 0.5, false);
 					}
 				}
 			} else if (getSetting(0).asMode().mode == 2) {
-				WorldRenderUtils.drawText("[" + currentItems.stream().filter(i -> !i.isEmpty() && !isBlacklisted(i.getItem())).count() + "]",
-						currentPos.getX() + 0.5, currentPos.getY() + 1.2, currentPos.getZ() + 0.5, 0.8f);
+				WorldRenderUtils.drawText(
+						new LiteralText("[" + currentItems.stream().filter(i -> !i.isEmpty() && !isBlacklisted(i.getItem())).count() + "]"),
+						currentPos.getX() + 0.5, currentPos.getY() + 1.2, currentPos.getZ() + 0.5, 0.8, false);
 			}
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onOpenScreen(EventOpenScreen event) {
 		currentSyncId = -1;
 
@@ -205,7 +215,7 @@ public class AutoSteal extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onSendPacket(EventSendPacket event) {
 		if (event.getPacket() instanceof CloseHandledScreenC2SPacket) {
 			currentItems = null;
@@ -221,7 +231,7 @@ public class AutoSteal extends Module {
 		}
 	}
 
-	@Subscribe
+	@BleachSubscribe
 	public void onReadPacket(EventReadPacket event) {
 		if (event.getPacket() instanceof InventoryS2CPacket) {
 			InventoryS2CPacket packet = (InventoryS2CPacket) event.getPacket();

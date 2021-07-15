@@ -1,26 +1,18 @@
 /*
  * This file is part of the BleachHack distribution (https://github.com/BleachDrinker420/BleachHack/).
- * Copyright (c) 2019 Bleach.
+ * Copyright (c) 2021 Bleach and contributors.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This source code is subject to the terms of the GNU General Public
+ * License, version 3. If a copy of the GPL was not distributed with this
+ * file, You can obtain one at: https://www.gnu.org/licenses/gpl-3.0.txt
  */
 package bleach.hack.command.commands;
 
-import java.util.Random;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import bleach.hack.command.Command;
@@ -28,8 +20,6 @@ import bleach.hack.command.CommandCategory;
 import bleach.hack.util.BleachLogger;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
 import net.minecraft.network.packet.c2s.play.BookUpdateC2SPacket;
 
 public class CmdRbook extends Command {
@@ -53,16 +43,12 @@ public class CmdRbook extends Command {
 		int endChar = args.length >= 3 && NumberUtils.isCreatable(args[2]) ? NumberUtils.createNumber(args[2]).intValue() : 0x10FFFF;
 		int pageChars = args.length >= 4 && NumberUtils.isCreatable(args[3]) ? NumberUtils.createNumber(args[3]).intValue() : 210;
 
-		IntStream chars = new Random().ints(startChar, endChar + 1);
-		String text = chars.limit(pageChars * 100).mapToObj(i -> String.valueOf((char) i)).collect(Collectors.joining());
-
-		NbtList textSplit = new NbtList();
+		List<String> textSplit = new ArrayList<>();
 
 		for (int t = 0; t < pages; t++)
-			textSplit.add(NbtString.of(text.substring(t * pageChars, (t + 1) * pageChars)));
+			textSplit.add(RandomStringUtils.random(pageChars, startChar, endChar, false, false));
 
-		item.getOrCreateTag().put("pages", textSplit);
-		mc.player.networkHandler.sendPacket(new BookUpdateC2SPacket(item, false, mc.player.getInventory().selectedSlot));
+		mc.player.networkHandler.sendPacket(new BookUpdateC2SPacket(mc.player.getInventory().selectedSlot, textSplit, Optional.empty()));
 
 		BleachLogger.infoMessage("Written book (" + pages + " pages, " + pageChars + " chars/page)");
 	}
